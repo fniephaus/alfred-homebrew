@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.fniephaus.brew</string>
+	<key>category</key>
+	<string>Tools</string>
+	<key>connections</key>
+	<dict>
+		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>DBFBC9A1-0AD8-423A-AE7F-8A07808DAAC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>Fabio Niephaus</string>
+	<key>description</key>
+	<string>Control Homebrew with Alfred</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Brew for Alfred</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>brew</string>
+				<key>script</key>
+				<string>python brew.py "{query}"</string>
+				<key>title</key>
+				<string>Brew</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>script</key>
+				<string>{query}</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.terminalcommand</string>
+			<key>uid</key>
+			<string>DBFBC9A1-0AD8-423A-AE7F-8A07808DAAC0</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string></string>
+	<key>uidata</key>
+	<dict>
+		<key>DBFBC9A1-0AD8-423A-AE7F-8A07808DAAC0</key>
+		<dict>
+			<key>ypos</key>
+			<real>10</real>
+		</dict>
+		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
+		<dict>
+			<key>ypos</key>
+			<real>10</real>
+		</dict>
+	</dict>
+	<key>webaddress</key>
+	<string>https://github.com/fniephaus/alfred-brew/</string>
+</dict>
+</plist>
