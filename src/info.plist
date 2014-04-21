@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>bundleid</key>
-	<string>com.fniephaus.brew</string>
+	<string>com.fniephaus.homebrew</string>
 	<key>category</key>
 	<string>Tools</string>
 	<key>connections</key>
@@ -27,7 +27,7 @@
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
-	<string>Brew for Alfred</string>
+	<string>Homebrew for Alfred</string>
 	<key>objects</key>
 	<array>
 		<dict>
@@ -87,6 +87,6 @@
 		</dict>
 	</dict>
 	<key>webaddress</key>
-	<string>https://github.com/fniephaus/alfred-brew/</string>
+	<string>https://github.com/fniephaus/alfred-homebrew/</string>
 </dict>
 </plist>
