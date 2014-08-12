@@ -1,55 +1,147 @@
 import sys
 import os
-from workflow import Workflow
+from workflow import Workflow, MATCH_SUBSTRING
 
 FORMULA_URL = 'https://github.com/Homebrew/homebrew/tree/master/Library/Formula'
 
+ACTIONS = [
+    {
+        'name': 'install',
+        'description': 'Install new packages',
+        'autocomplete': 'install ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'uninstall',
+        'description': 'Uninstall packages',
+        'autocomplete': 'uninstall ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'search',
+        'description': 'Search packages',
+        'autocomplete': 'search ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'list',
+        'description': 'List installed packages',
+        'autocomplete': 'list ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'update',
+        'description': 'Update brew packages',
+        'autocomplete': '',
+        'arg': 'brew update',
+        'valid':  True
+    },
+    {
+        'name': 'upgrade',
+        'description': 'Upgrade brew packages',
+        'autocomplete': '',
+        'arg': 'brew upgrade',
+        'valid':  True
+    },
+    {
+        'name': 'doctor',
+        'description': 'Run brew doctor',
+        'autocomplete': '',
+        'arg': 'brew doctor',
+        'valid':  True
+    },
+    {
+        'name': 'info',
+        'description': 'Show info',
+        'autocomplete': 'info',
+        'arg': '',
+        'valid': False
+    }
+]
+
+
+def search_key_for_action(action):
+            elements = []
+            elements.append(action['name'])
+            elements.append(action['description'])
+            return u' '.join(elements)
+
 
 def complete(wf):
-    query = ' '.join(wf.args).split()
+    global ACTIONS
 
-    if len(query) > 0 and query[0] == 'install':
-        for item in list_all_packages():
-            name = item.rsplit()[0]
-            if len(query) == 1 or query[1] in name:
-                wf.add_item(name, arg='brew install %s' % name, valid=True)
-    elif len(query) > 0 and query[0] == 'uninstall':
-        for item in list_packages():
-            name = item.rsplit()[0]
-            if len(query) == 1 or query[1] in name:
-                wf.add_item(name, arg='brew uninstall %s' % name, valid=True)
-    elif len(query) > 0 and query[0] == 'list':
-        for item in list_packages(True):
-            name = item.rsplit()
-            name = '%s %s' % (name[0], name[1])
-            if len(query) == 1 or query[1] in name:
-                wf.add_item(name, 'Open formula on GitHub', arg='open %s/%s.rb' % (FORMULA_URL, name), valid=True)
-    elif len(query) > 0 and query[0] == 'search':
-        for item in list_all_packages():
-            name = item.rsplit()[0]
-            if len(query) == 1 or query[1] in name:
-                wf.add_item(name, 'Open formula on GitHub', arg='open %s/%s.rb' % (FORMULA_URL, name), valid=True)
-    elif len(query) > 0 and query[0] == 'info':
+    if len(wf.args):
+        query = wf.args[0]
+    else:
+        query = None
+
+    if query and query.startswith('install'):
+        filter_all_packages(query)
+    elif query and query.startswith('uninstall'):
+        filter_installed_packages(query)
+    elif query and query.startswith('list'):
+        filter_installed_packages(query)
+    elif query and query.startswith('search'):
+        filter_all_packages(query)
+    elif query and query.startswith('info'):
         info = os.popen('/usr/local/bin/brew info').readlines()[0]
         wf.add_item(info, autocomplete='')
     else:
-        wf.add_item('install', 'Install new packages', uid="install", autocomplete='install ')
-        wf.add_item('uninstall', 'Uninstall packages', uid="uninstall", autocomplete='uninstall ')
-        wf.add_item('search', 'Search available packages', uid="search", autocomplete='search ')
-        wf.add_item('list', 'List installed packages', uid="list", autocomplete='list ')
-        wf.add_item('update', 'Update brew packages', uid="update", arg='brew update', valid=True)
-        wf.add_item('upgrade', 'Upgrade brew packages', uid="upgrade", arg='brew upgrade', valid=True)
-        wf.add_item('doctor', 'Run brew doctor', uid="doctor", arg='brew doctor', valid=True)
-        wf.add_item('info', 'Show info', uid="info", autocomplete='info')
+        if query:
+            ACTIONS = wf.filter(
+                query, ACTIONS, key=search_key_for_action, match_on=MATCH_SUBSTRING)
+
+        for action in ACTIONS:
+                wf.add_item(action['name'], action['description'], uid=action[
+                            'name'], autocomplete=action['autocomplete'], arg=action['arg'], valid=action['valid'])
 
     wf.send_feedback()
 
-def list_packages(versions=False):
-    options = '--versions' if versions else ''
-    return os.popen('/usr/local/bin/brew list %s' % options).readlines()
 
-def list_all_packages():
-    return os.popen('/usr/local/bin/brew search').readlines()
+def filter_all_packages(query):
+    formulas = os.popen('/usr/local/bin/brew search').readlines()
+
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        formulas = wf.filter(query_filter[1],
+                             formulas, match_on=MATCH_SUBSTRING)
+
+    for formula in formulas:
+        formula = formula.rsplit()
+        name = formula[0]
+
+        if query.startswith('install'):
+            wf.add_item(name, "Install", arg='brew install %s' %
+                        name, valid=True)
+        else:
+            wf.add_item(name, "Open on GitHub", arg='open %s/%s.rb' %
+                        (FORMULA_URL, name), valid=True)
+
+
+def filter_installed_packages(query):
+    formulas = os.popen('/usr/local/bin/brew list --versions').readlines()
+
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        formulas = wf.filter(query_filter[1],
+                             formulas, match_on=MATCH_SUBSTRING)
+
+    for formula in formulas:
+        formula = formula.rsplit()
+        name = formula[0]
+        formula = "%s %s" % (name, formula[1])
+
+        if query.startswith('uninstall'):
+            wf.add_item(formula, "Uninstall", arg='brew uninstall %s' %
+                        name, valid=True)
+        else:
+            wf.add_item(
+                formula, "Open on GitHub", arg='open %s/%s.rb' % (FORMULA_URL, name), valid=True)
+
 
 if __name__ == '__main__':
     wf = Workflow()
