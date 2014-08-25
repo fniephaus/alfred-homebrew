@@ -20,12 +20,15 @@ There are convenience methods for:
 
 - Parsing script arguments.
 - Text decoding/normalisation.
-- Caching data and settings.
-- Secure storage (and sync) of passwords (using OS X Keychain).
+- Storing data and settings.
+- Caching data from, e.g., web services with a simple API for updating expired
+  data.
+- Securely storing (and syncing) passwords using OS X Keychain.
 - Generating XML output for Alfred.
 - Including external libraries (adding directories to ``sys.path``).
-- Filtering results using an Alfred-like algorithm.
+- Filtering results using an Alfred-like, fuzzy search algorithm.
 - Generating log output for debugging.
+- Running background processes to keep your workflow responsive.
 - Capturing errors, so the workflow doesn't fail silently.
 
 Quick Example
@@ -68,6 +71,22 @@ Pinboard item in Alfred to open it in your browser.
 Installation
 ============
 
+With pip
+--------
+
+You can install **Alfred-Workflow** directly into your workflow with::
+
+    pip install --target=/path/to/my/workflow Alfred-Workflow
+
+
+**Note**: If you intend to distribute your workflow to other users, you should
+include **Alfred-Workflow** (and other Python libraries your workflow requires)
+within your workflow as described. Do not ask users to install anything into
+their system Python.
+
+From source
+-----------
+
 Download the ``alfred-workflow-X.X.zip`` file from the
 `GitHub releases page <https://github.com/deanishe/alfred-workflow/releases>`_
 and either extract the ZIP to the root directory of your workflow (where
@@ -101,14 +120,14 @@ Or like this::
     Your Workflow/
         info.plist
         icon.png
-        workflow-1.4.zip
+        workflow-1.X.X.zip
         yourscript.py
         etc.
 
 
 """
 
-__version__ = '1.8'
+__version__ = '1.8.5'
 
 
 from .workflow import Workflow, PasswordNotFound, KeychainError

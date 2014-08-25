@@ -83,46 +83,40 @@ except ImportError:  # pragma: no cover
 
 
 ####################################################################
-# Some standard system icons
+# Standard system icons
 ####################################################################
 
-# Shown when a workflow throws an error
-ICON_ACCOUNT = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-                '/Resources/Accounts.icns')
-ICON_BURN = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/BurningIcon.icns')
-ICON_COLOR = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-              '/Resources/ProfileBackgroundColor.icns')
+# These icons are default OS X icons. They are super-high quality, and
+# will be familiar to users.
+# This library uses `ICON_ERROR` when a workflow dies in flames, so
+# in my own workflows, I use `ICON_WARNING` for less fatal errors
+# (e.g. bad user input, no results etc.)
+
+# The system icons are all in this directory. There are many more than
+# are listed here
+
+ICON_ROOT = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources'
+
+ICON_ACCOUNT = os.path.join(ICON_ROOT, 'Accounts.icns')
+ICON_BURN = os.path.join(ICON_ROOT, 'BurningIcon.icns')
+ICON_COLOR = os.path.join(ICON_ROOT, 'ProfileBackgroundColor.icns')
 ICON_COLOUR = ICON_COLOR  # Queen's English, if you please
-ICON_ERROR = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-              '/Resources/AlertStopIcon.icns')
-ICON_FAVORITE = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-                 '/Resources/ToolbarFavoritesIcon.icns')
+# Shown when a workflow throws an error
+ICON_ERROR = os.path.join(ICON_ROOT, 'AlertStopIcon.icns')
+ICON_FAVORITE = os.path.join(ICON_ROOT, 'ToolbarFavoritesIcon.icns')
 ICON_FAVOURITE = ICON_FAVORITE
-ICON_GROUP = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-              '/Resources/GroupIcon.icns')
-ICON_HELP = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/HelpIcon.icns')
-ICON_INFO = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/ToolbarInfo.icns')
-ICON_MUSIC = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-              '/Resources/ToolbarMusicFolderIcon.icns')
-ICON_NETWORK = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-                '/Resources/GenericNetworkIcon.icns')
-ICON_NOTE = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/AlertNoteIcon.icns')
-ICON_SETTINGS = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-                 '/Resources/ToolbarAdvanced.icns')
-ICON_SYNC = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/Sync.icns')
-ICON_TRASH = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-              '/Resources/TrashIcon.icns')
-ICON_USER = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-             '/Resources/UserIcon.icns')
-ICON_WARNING = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-                '/Resources/AlertCautionIcon.icns')
-ICON_WEB = ('/System/Library/CoreServices/CoreTypes.bundle/Contents'
-            '/Resources/BookmarkIcon.icns')
+ICON_GROUP = os.path.join(ICON_ROOT, 'GroupIcon.icns')
+ICON_HELP = os.path.join(ICON_ROOT, 'HelpIcon.icns')
+ICON_INFO = os.path.join(ICON_ROOT, 'ToolbarInfo.icns')
+ICON_MUSIC = os.path.join(ICON_ROOT, 'ToolbarMusicFolderIcon.icns')
+ICON_NETWORK = os.path.join(ICON_ROOT, 'GenericNetworkIcon.icns')
+ICON_NOTE = os.path.join(ICON_ROOT, 'AlertNoteIcon.icns')
+ICON_SETTINGS = os.path.join(ICON_ROOT, 'ToolbarAdvanced.icns')
+ICON_SYNC = os.path.join(ICON_ROOT, 'Sync.icns')
+ICON_TRASH = os.path.join(ICON_ROOT, 'TrashIcon.icns')
+ICON_USER = os.path.join(ICON_ROOT, 'UserIcon.icns')
+ICON_WARNING = os.path.join(ICON_ROOT, 'AlertCautionIcon.icns')
+ICON_WEB = os.path.join(ICON_ROOT, 'BookmarkIcon.icns')
 
 ####################################################################
 # non-ASCII to ASCII diacritic folding.
@@ -438,6 +432,11 @@ MATCH_SUBSTRING = 32
 MATCH_ALLCHARS = 64
 MATCH_ALL = 127
 
+####################################################################
+# Used by `Workflow.check_update`
+####################################################################
+
+DEFAULT_FREQUENCY = 1
 
 ####################################################################
 # Keychain access errors
@@ -494,6 +493,8 @@ def isascii(text):
 class SerializerManager(object):
     """Contains registered serializers.
 
+    .. versionadded:: 1.8
+
     A configured instance of this class is available at ``workflow.manager``.
 
     Use :meth:`register()` to register new (or replace
@@ -540,7 +541,7 @@ class SerializerManager(object):
 
         :param name: Name to register ``serializer`` under
         :type name: ``unicode`` or ``str``
-        :param serilializer: object with ``load()`` and ``dump()``
+        :param serializer: object with ``load()`` and ``dump()``
             methods
 
         """
@@ -592,6 +593,8 @@ class SerializerManager(object):
 class JSONSerializer(object):
     """Wrapper around :mod:`json`. Sets ``indent`` and ``encoding``.
 
+    .. versionadded:: 1.8
+
     Use this serializer if you need readable data files. JSON doesn't
     support Python objects as well as ``cPickle``/``pickle``, so be
     careful which data you try to serialize as JSON.
@@ -610,6 +613,8 @@ class JSONSerializer(object):
 class CPickleSerializer(object):
     """Wrapper around :mod:`cPickle`. Sets ``protocol``.
 
+    .. versionadded:: 1.8
+
     This is the default serializer and the best combination of speed and
     flexibility.
 
@@ -626,6 +631,8 @@ class CPickleSerializer(object):
 
 class PickleSerializer(object):
     """Wrapper around :mod:`pickle`. Sets ``protocol``.
+
+    .. versionadded:: 1.8
 
     Use this serializer if you need to add custom pickling.
 
@@ -659,7 +666,8 @@ class Item(object):
 
     def __init__(self, title, subtitle='', modifier_subtitles=None,
                  arg=None, autocomplete=None, valid=False, uid=None,
-                 icon=None, icontype=None, type=None):
+                 icon=None, icontype=None, type=None, largetext=None,
+                 copytext=None):
         """Arguments the same as for :meth:`Workflow.add_item`.
 
         """
@@ -674,6 +682,8 @@ class Item(object):
         self.icon = icon
         self.icontype = icontype
         self.type = type
+        self.largetext = largetext
+        self.copytext = copytext
 
     @property
     def elem(self):
@@ -713,6 +723,15 @@ class Item(object):
             else:
                 attr = {}
             ET.SubElement(root, 'icon', attr).text = self.icon
+
+        if self.largetext:
+            ET.SubElement(root, 'text',
+                          {'type': 'largetype'}).text = self.largetext
+
+        if self.copytext:
+            ET.SubElement(root, 'text',
+                          {'type': 'copy'}).text = self.copytext
+
         return root
 
 
@@ -744,7 +763,7 @@ class Settings(dict):
         elif defaults:
             for key, val in defaults.items():
                 self[key] = val
-            self._save()  # save default settings
+            self.save()  # save default settings
 
     def _load(self):
         """Load cached settings from JSON file `self._filepath`"""
@@ -755,8 +774,13 @@ class Settings(dict):
                 self[key] = value
         self._nosave = False
 
-    def _save(self):
-        """Save settings to JSON file `self._filepath`"""
+    def save(self):
+        """Save settings to JSON file specified in ``self._filepath``
+
+        If you're using this class via :attr:`Workflow.settings`, which
+        you probably are, ``self._filepath`` will be ``settings.json``
+        in your workflow's data directory (see :attr:`~Workflow.datadir`).
+        """
         if self._nosave:
             return
         data = {}
@@ -768,17 +792,17 @@ class Settings(dict):
     # dict methods
     def __setitem__(self, key, value):
         super(Settings, self).__setitem__(key, value)
-        self._save()
+        self.save()
 
     def update(self, *args, **kwargs):
         """Override :class:`dict` method to save on update."""
         super(Settings, self).update(*args, **kwargs)
-        self._save()
+        self.save()
 
     def setdefault(self, key, value=None):
         """Override :class:`dict` method to save on update."""
         ret = super(Settings, self).setdefault(key, value)
-        self._save()
+        self.save()
         return ret
 
 
@@ -807,10 +831,12 @@ class Workflow(object):
     # won't want to change this
     item_class = Item
 
-    def __init__(self, default_settings=None, input_encoding='utf-8',
-                 normalization='NFC', capture_args=True, libraries=None):
+    def __init__(self, default_settings=None, update_config=None,
+                 input_encoding='utf-8', normalization='NFC',
+                 capture_args=True, libraries=None):
 
         self._default_settings = default_settings or {}
+        self._update_config = update_config
         self._input_encoding = input_encoding
         self._normalizsation = normalization
         self._capture_args = capture_args
@@ -831,6 +857,8 @@ class Workflow(object):
         self._search_pattern_cache = {}
         if libraries:
             sys.path = libraries + sys.path
+        if update_config:
+            self.check_update()
 
     ####################################################################
     # API methods
@@ -957,6 +985,34 @@ class Workflow(object):
 
         return self._name
 
+    @property
+    def update_available(self):
+        """Is an update available?
+
+        :returns: ``True`` if an update is available, else ``False``
+        :rtype: ``Boolean``
+
+        """
+
+        update_data = self.cached_data('__workflow_update_available')
+        if update_data is None or 'available' not in update_data:
+            return False
+        return update_data['available']
+
+    @property
+    def update_info(self):
+        """Returns GitHub release information
+
+        :returns: GitHub release information if available, else ``None``
+        :rtype: ``dict``
+
+        """
+
+        update_data = self.cached_data('__workflow_update_available')
+        if update_data is None or 'release' not in update_data:
+            return None
+        return update_data['release']
+
     # Workflow utility methods -----------------------------------------
 
     @property
@@ -1009,14 +1065,17 @@ class Workflow(object):
                 self.open_terminal()
             elif 'workflow:foldingon' in args:
                 msg = 'Diacritics will always be folded'
-                self.settings['__workflows_diacritic_folding'] = True
+                self.settings['__workflow_diacritic_folding'] = True
             elif 'workflow:foldingoff' in args:
                 msg = 'Diacritics will never be folded'
-                self.settings['__workflows_diacritic_folding'] = False
+                self.settings['__workflow_diacritic_folding'] = False
             elif 'workflow:foldingdefault' in args:
                 msg = 'Diacritics folding reset'
-                if '__workflows_diacritic_folding' in self.settings:
-                    del self.settings['__workflows_diacritic_folding']
+                if '__workflow_diacritic_folding' in self.settings:
+                    del self.settings['__workflow_diacritic_folding']
+            elif 'workflow:update' in args:
+                msg = 'Updating workflow'
+                self.start_update()
 
             if msg:
                 self.logger.debug(msg)
@@ -1029,6 +1088,11 @@ class Workflow(object):
     @property
     def cachedir(self):
         """Path to workflow's cache directory.
+
+        The cache directory is a subdirectory of Alfred's own cache directory in
+        ``~/Library/Caches``. The full path is:
+
+        ``~/Library/Caches/com.runningwithcrayons.Alfred-2/Workflow Data/<bundle id>``
 
         :returns: full path to workflow's cache directory
         :rtype: ``unicode``
@@ -1049,6 +1113,11 @@ class Workflow(object):
     @property
     def datadir(self):
         """Path to workflow's data directory.
+
+        The data directory is a subdirectory of Alfred's own data directory in
+        ``~/Library/Application Support``. The full path is:
+
+        ``~/Library/Application Support/Alfred 2/Workflow Data/<bundle id>``
 
         :returns: full path to workflow data directory
         :rtype: ``unicode``
@@ -1074,21 +1143,37 @@ class Workflow(object):
         """
 
         if not self._workflowdir:
+            # Try the working directory first, then the directory
+            # the library is in. CWD will be the workflow root if
+            # a workflow is being run in Alfred
+            candidates = [
+                os.path.abspath(os.getcwd()),
+                os.path.dirname(os.path.abspath(os.path.dirname(__file__)))]
+
             # climb the directory tree until we find `info.plist`
-            dirpath = os.path.abspath(os.path.dirname(__file__))
-            while True:
-                dirpath = os.path.dirname(dirpath)
-                if os.path.exists(os.path.join(dirpath, 'info.plist')):
-                    self._workflowdir = dirpath
+            for dirpath in candidates:
+
+                while True:
+                    if os.path.exists(os.path.join(dirpath, 'info.plist')):
+                        self._workflowdir = dirpath
+                        break
+                    elif dirpath == '/':
+                        # no `info.plist` found
+                        break
+                    dirpath = os.path.dirname(dirpath)
+
+                # No need to check other candidates
+                if self._workflowdir:
                     break
-                elif dirpath == '/':  # pragma: no cover
-                    # no `info.plist` found
-                    raise IOError("'info.plist' not found in directory tree")
+
+            if not self._workflowdir:
+                raise IOError("'info.plist' not found in directory tree")
 
         return self._workflowdir
 
     def cachefile(self, filename):
-        """Return full path to ``filename`` within workflow's cache dir.
+        """Return full path to ``filename`` within your workflow's
+        :attr:`cache directory <Workflow.cachedir>`.
 
         :param filename: basename of file
         :type filename: ``unicode``
@@ -1100,7 +1185,8 @@ class Workflow(object):
         return os.path.join(self.cachedir, filename)
 
     def datafile(self, filename):
-        """Return full path to ``filename`` within workflow's data dir.
+        """Return full path to ``filename`` within your workflow's
+        :attr:`data directory <Workflow.datadir>`.
 
         :param filename: basename of file
         :type filename: ``unicode``
@@ -1219,6 +1305,8 @@ class Workflow(object):
     def cache_serializer(self):
         """Name of default cache serializer.
 
+        .. versionadded:: 1.8
+
         This serializer is used by :meth:`cache_data()` and
         :meth:`cached_data()`
 
@@ -1234,6 +1322,8 @@ class Workflow(object):
     @cache_serializer.setter
     def cache_serializer(self, serializer_name):
         """Set the default cache serialization format.
+
+        .. versionadded:: 1.8
 
         This serializer is used by :meth:`cache_data()` and
         :meth:`cached_data()`
@@ -1261,6 +1351,8 @@ class Workflow(object):
     def data_serializer(self):
         """Name of default data serializer.
 
+        .. versionadded:: 1.8
+
         This serializer is used by :meth:`store_data()` and
         :meth:`stored_data()`
 
@@ -1276,6 +1368,8 @@ class Workflow(object):
     @data_serializer.setter
     def data_serializer(self, serializer_name):
         """Set the default cache serialization format.
+
+        .. versionadded:: 1.8
 
         This serializer is used by :meth:`store_data()` and
         :meth:`stored_data()`
@@ -1302,6 +1396,8 @@ class Workflow(object):
     def stored_data(self, name):
         """Retrieve data from data directory. Returns ``None`` if there
         is no data stored.
+
+        .. versionadded:: 1.8
 
         :param name: name of datastore
         :type name: ``unicode``
@@ -1347,6 +1443,8 @@ class Workflow(object):
 
     def store_data(self, name, data, serializer=None):
         """Save data to data directory.
+
+        .. versionadded:: 1.8
 
         If ``data`` is ``None``, the datastore will be deleted.
 
@@ -1587,7 +1685,7 @@ class Workflow(object):
         query = query.strip()
 
         # Use user override if there is one
-        fold_diacritics = self.settings.get('__workflows_diacritic_folding',
+        fold_diacritics = self.settings.get('__workflow_diacritic_folding',
                                             fold_diacritics)
 
         results = []
@@ -1780,7 +1878,7 @@ class Workflow(object):
 
     def add_item(self, title, subtitle='', modifier_subtitles=None, arg=None,
                  autocomplete=None, valid=False, uid=None, icon=None,
-                 icontype=None, type=None):
+                 icontype=None, type=None, largetext=None, copytext=None):
         """Add an item to be output to Alfred
 
         :param title: Title shown in Alfred
@@ -1791,7 +1889,7 @@ class Workflow(object):
             (CMD, OPT etc.) is pressed. Use a ``dict`` with the lowercase
             keys ``cmd``, ``ctrl``, ``shift``, ``alt`` and ``fn``
         :type modifier_subtitles: ``dict``
-        :param arg: Argument passed by Alfred as `{query}` when item is
+        :param arg: Argument passed by Alfred as ``{query}`` when item is
             actioned
         :type arg: ``unicode``
         :param autocomplete: Text expanded in Alfred when item is TABbed
@@ -1804,7 +1902,7 @@ class Workflow(object):
         :type icon: ``unicode``
         :param icontype: Type of icon. Must be one of ``None`` , ``'filetype'``
            or ``'fileicon'``. Use ``'filetype'`` when ``icon`` is a filetype
-           such as``public.folder``. Use ``'fileicon'`` when you wish to
+           such as ``'public.folder'``. Use ``'fileicon'`` when you wish to
            use the icon of the file specified as ``icon``, e.g.
            ``icon='/Applications/Safari.app', icontype='fileicon'``.
            Leave as `None` if ``icon`` points to an actual
@@ -1814,12 +1912,22 @@ class Workflow(object):
             (by Alfred). This will tell Alfred to enable file actions for
             this item.
         :type type: ``unicode``
+        :param largetext: Text to be displayed in Alfred's large text box
+            if user presses CMD+L on item.
+        :type largetext: ``unicode``
+        :param copytext: Text to be copied to pasteboard if user presses
+            CMD+C on item.
+        :type copytext: ``unicode``
         :returns: :class:`Item` instance
+
+        See the :ref:`script-filter-results` section of the documentation
+        for more information.
 
         """
 
         item = self.item_class(title, subtitle, modifier_subtitles, arg,
-                               autocomplete, valid, uid, icon, icontype, type)
+                               autocomplete, valid, uid, icon, icontype, type,
+                               largetext, copytext)
         self._items.append(item)
         return item
 
@@ -1831,6 +1939,39 @@ class Workflow(object):
         sys.stdout.write('<?xml version="1.0" encoding="utf-8"?>\n')
         sys.stdout.write(ET.tostring(root).encode('utf-8'))
         sys.stdout.flush()
+
+    ####################################################################
+    # Updating methods
+    ####################################################################
+
+    def check_update(self, force=False):
+        frequency = self._update_config.get('frequency', DEFAULT_FREQUENCY)
+        if (force or
+                not self.cached_data_fresh(
+                    '__workflow_update_available', frequency * 86400)):
+            github_slug = self._update_config['github_slug']
+            version = self._update_config['version']
+            from background import run_in_background
+            cmd = ['/usr/bin/python', self.workflowfile('workflow/update.py'),
+                    github_slug, version]
+            run_in_background('__update', cmd)
+
+    def start_update(self):
+        import update
+        github_slug = self._update_config['github_slug']
+        version = self._update_config['version']
+        if not update._check_update(github_slug, version):
+            return False
+        update_data = self.cached_data('__workflow_update_available')
+        if (update_data is None or
+            'download_url' not in update_data):
+            return False   # pragma: no cover
+        local_file = update._download_workflow(update_data['download_url'])
+        subprocess.call(['open', local_file])
+        self.logger.debug('Update initiated')
+        update_data['available'] = False
+        self.cache_data('__workflow_update_available', update_data)
+        return True
 
     ####################################################################
     # Keychain password storage methods
