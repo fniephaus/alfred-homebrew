@@ -1,6 +1,7 @@
 import sys
 import os
 from workflow import Workflow, MATCH_SUBSTRING
+import brew_refresh
 
 FORMULA_URL = 'https://github.com/Homebrew/homebrew/tree/master/Library/Formula'
 
@@ -60,19 +61,31 @@ ACTIONS = [
         'autocomplete': 'info',
         'arg': '',
         'valid': False
+    },
+    {
+        'name': 'clear',
+        'description': 'Clear workflow cache',
+        'autocomplete': 'workflow:delcache',
+        'arg': '',
+        'valid': False
     }
 ]
 
 
 def search_key_for_action(action):
-            elements = []
-            elements.append(action['name'])
-            elements.append(action['description'])
-            return u' '.join(elements)
+    elements = []
+    elements.append(action['name'])
+    elements.append(action['description'])
+    return u' '.join(elements)
 
 
 def complete(wf):
     global ACTIONS
+
+    if wf.update_available:
+        subtitle = 'New: %s' % wf.update_info['body']
+        wf.add_item("An update is available!", subtitle,
+                    autocomplete='workflow:update', valid=False)
 
     if len(wf.args):
         query = wf.args[0]
@@ -88,7 +101,9 @@ def complete(wf):
     elif query and query.startswith('search'):
         filter_all_packages(query)
     elif query and query.startswith('info'):
-        info = os.popen('/usr/local/bin/brew info').readlines()[0]
+        info = wf.cached_data('brew_info')
+        if not info:
+            info = brew_refresh.get_info()
         wf.add_item(info, autocomplete='')
     else:
         if query:
@@ -103,7 +118,9 @@ def complete(wf):
 
 
 def filter_all_packages(query):
-    formulas = os.popen('/usr/local/bin/brew search').readlines()
+    formulas = wf.cached_data('brew_all')
+    if not formulas:
+        formulas = brew_refresh.get_all_packages()
 
     query_filter = query.split()
     if len(query_filter) > 1:
@@ -123,7 +140,9 @@ def filter_all_packages(query):
 
 
 def filter_installed_packages(query):
-    formulas = os.popen('/usr/local/bin/brew list --versions').readlines()
+    formulas = wf.cached_data('brew_installed')
+    if not formulas:
+        formulas = brew_refresh.get_installed_packages()
 
     query_filter = query.split()
     if len(query_filter) > 1:
@@ -143,6 +162,14 @@ def filter_installed_packages(query):
                 formula, "Open on GitHub", arg='open %s/%s.rb' % (FORMULA_URL, name), valid=True)
 
 
+def refresh_cache(wf):
+    if not is_running('brew_refresh'):
+        cmd = ['/usr/bin/python', wf.workflowfile('brew_refresh.py')]
+        run_in_background('brew_refresh', cmd)
+
 if __name__ == '__main__':
-    wf = Workflow()
+    wf = Workflow(update_config={
+        'github_slug': 'fniephaus/alfred-homebrew',
+        'version': 'v1.1',
+    })
     sys.exit(wf.run(complete))
