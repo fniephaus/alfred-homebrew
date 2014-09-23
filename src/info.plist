@@ -8,6 +8,17 @@
 	<string>Tools</string>
 	<key>connections</key>
 	<dict>
+		<key>BE21043D-F355-45C6-8CF0-80F5DAD8BA5B</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>DBFBC9A1-0AD8-423A-AE7F-8A07808DAAC0</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+			</dict>
+		</array>
 		<key>E037422F-BB78-4C52-9EC9-D23FCF6CA31A</key>
 		<array>
 			<dict>
@@ -70,11 +81,41 @@
 			<key>version</key>
 			<integer>0</integer>
 		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>1</integer>
+				<key>escaping</key>
+				<integer>102</integer>
+				<key>keyword</key>
+				<string>cask</string>
+				<key>script</key>
+				<string>python cask.py "{query}"</string>
+				<key>title</key>
+				<string>Cask</string>
+				<key>type</key>
+				<integer>0</integer>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.scriptfilter</string>
+			<key>uid</key>
+			<string>BE21043D-F355-45C6-8CF0-80F5DAD8BA5B</string>
+			<key>version</key>
+			<integer>0</integer>
+		</dict>
 	</array>
 	<key>readme</key>
 	<string></string>
 	<key>uidata</key>
 	<dict>
+		<key>BE21043D-F355-45C6-8CF0-80F5DAD8BA5B</key>
+		<dict>
+			<key>ypos</key>
+			<real>130</real>
+		</dict>
 		<key>DBFBC9A1-0AD8-423A-AE7F-8A07808DAAC0</key>
 		<dict>
 			<key>ypos</key>
