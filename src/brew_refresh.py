@@ -1,17 +1,20 @@
-import os
+import subprocess
 from workflow import Workflow, PasswordNotFound
 
 
 def get_all_packages():
-    return os.popen('/usr/local/bin/brew search').readlines()
+    cmd, err = subprocess.Popen(['/usr/local/bin/brew', 'search'], stdout=subprocess.PIPE).communicate()
+    return cmd
 
 
 def get_installed_packages():
-    return os.popen('/usr/local/bin/brew list --versions').readlines()
+    cmd, err = subprocess.Popen(['/usr/local/bin/brew', 'list', '--versions'], stdout=subprocess.PIPE).communicate()
+    return cmd
 
 
 def get_info():
-    return os.popen('/usr/local/bin/brew info').readlines()[0]
+    cmd, err = subprocess.Popen(['/usr/local/bin/brew', 'info'], stdout=subprocess.PIPE).communicate()
+    return cmd
 
 if __name__ == '__main__':
     wf = Workflow()

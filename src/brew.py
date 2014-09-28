@@ -1,6 +1,7 @@
 import sys
 import os
 from workflow import Workflow, MATCH_SUBSTRING
+from workflow.background import run_in_background
 import brew_refresh
 
 FORMULA_URL = 'https://github.com/Homebrew/homebrew/tree/master/Library/Formula'
@@ -101,7 +102,7 @@ def complete(wf):
     elif query and query.startswith('search'):
         filter_all_packages(query)
     elif query and query.startswith('info'):
-        info = wf.cached_data('brew_info')
+        info = wf.cached_data('brew_info', max_age=3600)
         if not info:
             info = brew_refresh.get_info()
         wf.add_item(info, autocomplete='')
@@ -115,10 +116,11 @@ def complete(wf):
                             'name'], autocomplete=action['autocomplete'], arg=action['arg'], valid=action['valid'])
 
     wf.send_feedback()
+    refresh_cache(wf)
 
 
 def filter_all_packages(query):
-    formulas = wf.cached_data('brew_all')
+    formulas = wf.cached_data('brew_all', max_age=3600)
     if not formulas:
         formulas = brew_refresh.get_all_packages()
 
@@ -140,7 +142,7 @@ def filter_all_packages(query):
 
 
 def filter_installed_packages(query):
-    formulas = wf.cached_data('brew_installed')
+    formulas = wf.cached_data('brew_installed', max_age=3600)
     if not formulas:
         formulas = brew_refresh.get_installed_packages()
 
@@ -163,12 +165,11 @@ def filter_installed_packages(query):
 
 
 def refresh_cache(wf):
-    if not is_running('brew_refresh'):
-        cmd = ['/usr/bin/python', wf.workflowfile('brew_refresh.py')]
-        run_in_background('brew_refresh', cmd)
+    cmd = ['/usr/bin/python', wf.workflowfile('brew_refresh.py')]
+    run_in_background('brew_refresh', cmd)
 
 if __name__ == '__main__':
-    wf = Workflow(update_config={
+    wf = Workflow(update_settings={
         'github_slug': 'fniephaus/alfred-homebrew',
         'version': 'v1.1',
     })
