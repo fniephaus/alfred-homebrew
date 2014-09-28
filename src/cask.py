@@ -1,6 +1,9 @@
 import sys
 import os
+import subprocess
+
 from workflow import Workflow, MATCH_SUBSTRING
+from workflow.background import run_in_background
 import cask_refresh
 
 ACTIONS = [
@@ -59,6 +62,13 @@ ACTIONS = [
         'autocomplete': 'workflow:delcache',
         'arg': '',
         'valid': False
+    },
+    {
+        'name': 'alfred',
+        'description': 'Modify Alfred\'s scope to include the Caskroom',
+        'autocomplete': 'alfred',
+        'arg': '',
+        'valid': False
     }
 ]
 
@@ -91,11 +101,14 @@ def complete(wf):
         filter_installed_casks(query)
     elif query and query.startswith('search'):
         filter_all_casks(query)
-    elif query and query.startswith('info'):
-        info = wf.cached_data('cask_info')
-        if not info:
-            info = cask_refresh.get_info()
-        wf.add_item(info, autocomplete='')
+    elif query and query.startswith('alfred'):
+        info, _ = subprocess.Popen('export PATH=/usr/local/bin:$PATH && /usr/local/bin/brew cask alfred status', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+    
+        wf.add_item(info)
+        if 'not linked' in info:
+            wf.add_item('Add Caskroom to alfred search paths', arg='brew cask alfred link', valid=True)
+        else:
+            wf.add_item('Remove Caskroom from Alfred search paths', arg='brew cask alfred unlink', valid=True)
     else:
         if query:
             ACTIONS = wf.filter(
@@ -107,12 +120,12 @@ def complete(wf):
 
     wf.send_feedback()
 
+    cmd = ['/usr/bin/python', wf.workflowfile('cask_refresh.py')]
+    run_in_background('cask_refresh', cmd)
+
 
 def filter_all_casks(query):
-    formulas = wf.cached_data('cask_all')
-    if not formulas:
-        formulas = cask_refresh.get_all_casks()
-
+    formulas = wf.cached_data('cask_all', max_age=0)
     query_filter = query.split()
     if len(query_filter) > 1:
         formulas = wf.filter(query_filter[1],
@@ -132,10 +145,7 @@ def filter_all_casks(query):
 
 
 def filter_installed_casks(query):
-    formulas = wf.cached_data('cask_installed')
-    if not formulas:
-        formulas = cask_refresh.get_installed_casks()
-
+    formulas = wf.cached_data('cask_installed', cask_refresh.get_installed_casks, max_age=3600)
     query_filter = query.split()
     if len(query_filter) > 1:
         formulas = wf.filter(query_filter[1],
@@ -150,13 +160,8 @@ def filter_installed_casks(query):
                 formula, "Open homepage", arg='brew cask home %s' % formula, valid=True)
 
 
-def refresh_cache(wf):
-    if not is_running('cask_refresh'):
-        cmd = ['/usr/bin/python', wf.workflowfile('cask_refresh.py')]
-        run_in_background('cask_refresh', cmd)
-
 if __name__ == '__main__':
-    wf = Workflow(update_config={
+    wf = Workflow(update_settings={
         'github_slug': 'fniephaus/alfred-homebrew',
         'version': 'v1.1',
     })
