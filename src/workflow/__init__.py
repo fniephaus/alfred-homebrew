@@ -15,7 +15,11 @@ authors.
 
 import os
 
+__title__ = 'Alfred-Workflow'
 __version__ = open(os.path.join(os.path.dirname(__file__), 'version')).read()
+__author__ = 'Dean Jackson'
+__licence__ = 'MIT'
+__copyright__ = 'Copyright 2014 Dean Jackson'
 
 
 # Workflow objects
@@ -29,7 +33,7 @@ from .workflow import (ICON_ERROR, ICON_WARNING, ICON_NOTE, ICON_INFO,
                        ICON_FAVORITE, ICON_FAVOURITE, ICON_USER, ICON_GROUP,
                        ICON_HELP, ICON_NETWORK, ICON_WEB, ICON_COLOR,
                        ICON_COLOUR, ICON_SYNC, ICON_SETTINGS, ICON_TRASH,
-                       ICON_MUSIC, ICON_BURN, ICON_ACCOUNT, ICON_ERROR)
+                       ICON_MUSIC, ICON_BURN, ICON_ACCOUNT)
 
 # Filter matching rules
 from .workflow import (MATCH_ALL, MATCH_ALLCHARS, MATCH_ATOM,

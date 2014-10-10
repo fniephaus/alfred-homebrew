@@ -465,13 +465,15 @@ class SerializerManager(object):
 
     .. versionadded:: 1.8
 
-    A configured instance of this class is available at ``workflow.manager``.
+    A configured instance of this class is available at
+    ``workflow.manager``.
 
     Use :meth:`register()` to register new (or replace
     existing) serializers, which you can specify by name when calling
     :class:`Workflow` data storage methods.
 
-    See `serialization` and `persistent-data` for further information.
+    See :ref:`manual-serialization` and :ref:`manual-persistent-data`
+    for further information.
 
     """
 
@@ -1395,8 +1397,7 @@ class Workflow(object):
         :class:`SerializerManager` at `~workflow.workflow.manager`,
         otherwise a :class:`ValueError` will be raised.
 
-        :param serializer_name: Name of default serializer to use.
-        :type serializer_name:
+        :param serializer_name: Name of serializer to use by default.
 
         """
 
@@ -1412,12 +1413,11 @@ class Workflow(object):
 
     def stored_data(self, name):
         """Retrieve data from data directory. Returns ``None`` if there
-        is no data stored.
+        are no data stored.
 
         .. versionadded:: 1.8
 
         :param name: name of datastore
-        :type name: ``unicode``
 
         """
 
@@ -1466,13 +1466,11 @@ class Workflow(object):
         If ``data`` is ``None``, the datastore will be deleted.
 
         :param name: name of datastore
-        :type name: ``unicode``
-        :param data: object(s) to store
-        :type data: artibrary Python objects. **Note:** some serializers
+        :param data: object(s) to store. **Note:** some serializers
             can only handled certain types of data.
-        :param serializer: name of serializer to use.
-            See :class:`SerializerManager` for more information.
-        :type serializer: ``unicode``
+        :param serializer: name of serializer to use. If no serializer
+            is specified, the default will be used. See
+            :class:`SerializerManager` for more information.
         :returns: data in datastore or ``None``
 
         """
@@ -1521,14 +1519,12 @@ class Workflow(object):
         matter how old.
 
         :param name: name of datastore
-        :type name: ``unicode``
         :param data_func: function to (re-)generate data.
         :type data_func: ``callable``
         :param max_age: maximum age of cached data in seconds
         :type max_age: ``int``
         :returns: cached data, return value of ``data_func`` or ``None``
             if ``data_func`` is not set
-        :rtype: whatever ``data_func`` returns or ``None``
 
         """
 
@@ -1555,12 +1551,12 @@ class Workflow(object):
     def cache_data(self, name, data):
         """Save ``data`` to cache under ``name``.
 
-        If ``data`` is ``None``, the corresponding cache file will be deleted.
+        If ``data`` is ``None``, the corresponding cache file will be
+        deleted.
 
         :param name: name of datastore
-        :type name: ``unicode``
-        :param data: data to store
-        :type data: any object supported by :mod:`pickle`
+        :param data: data to store. This may be any object supported by
+                the cache serializer
 
         """
 
@@ -1583,11 +1579,10 @@ class Workflow(object):
         """Is data cached at `name` less than `max_age` old?
 
         :param name: name of datastore
-        :type name: ``unicode``
         :param max_age: maximum age of data in seconds
         :type max_age: ``int``
-        :returns: ``True`` if data is less than ``max_age`` old, else ``False``
-        :rtype: ``Boolean``
+        :returns: ``True`` if data is less than ``max_age`` old, else
+            ``False``
 
         """
 
@@ -1705,7 +1700,6 @@ class Workflow(object):
 
         """
 
-
         if not query:
             raise ValueError('Empty `query`')
 
@@ -1731,8 +1725,8 @@ class Workflow(object):
             for word in words:
                 if word == '':
                     continue
-                s, r = self._filter_item(value, word, match_on,
-                                         fold_diacritics)
+                s, rule = self._filter_item(value, word, match_on,
+                                            fold_diacritics)
 
                 if not s:  # Skip items that don't match part of the query
                     skip = True
@@ -1746,7 +1740,7 @@ class Workflow(object):
                 # `value` as sort key. This means items with the same score
                 # will be sorted in alphabetical not reverse alphabetical order
                 results.append(((100.0 / score, value.lower(), score),
-                                (item, score, r)))
+                                (item, score, rule)))
 
         # sort on keys, then discard the keys
         results.sort(reverse=ascending)
@@ -1772,91 +1766,89 @@ class Workflow(object):
         """
 
         query = query.lower()
-        queryset = set(query)
 
         if not isascii(query):
             fold_diacritics = False
-
-        rule = None
-        score = 0
 
         if fold_diacritics:
             value = self.fold_to_ascii(value)
 
         # pre-filter any items that do not contain all characters
         # of ``query`` to save on running several more expensive tests
-        if not queryset <= set(value.lower()):
+        if not set(query) <= set(value.lower()):
+
             return (0, None)
 
         # item starts with query
-        if (match_on & MATCH_STARTSWITH and
-                value.lower().startswith(query)):
+        if match_on & MATCH_STARTSWITH and value.lower().startswith(query):
             score = 100.0 - (len(value) / len(query))
-            rule = MATCH_STARTSWITH
 
-        if not score and match_on & MATCH_CAPITALS:
-            # query matches capitalised letters in item,
-            # e.g. of = OmniFocus
+            return (score, MATCH_STARTSWITH)
+
+        # query matches capitalised letters in item,
+        # e.g. of = OmniFocus
+        if match_on & MATCH_CAPITALS:
             initials = ''.join([c for c in value if c in INITIALS])
             if initials.lower().startswith(query):
                 score = 100.0 - (len(initials) / len(query))
-                rule = MATCH_CAPITALS
 
-        if not score:
-            if (match_on & MATCH_ATOM or
-                    match_on & MATCH_INITIALS_CONTAIN or
-                    match_on & MATCH_INITIALS_STARTSWITH):
-                # split the item into "atoms", i.e. words separated by
-                # spaces or other non-word characters
-                atoms = [s.lower() for s in split_on_delimiters(value)]
-                # print('atoms : %s  -->  %s' % (value, atoms))
-                # initials of the atoms
-                initials = ''.join([s[0] for s in atoms if s])
+                return (score, MATCH_CAPITALS)
 
-            if match_on & MATCH_ATOM:
-                # is `query` one of the atoms in item?
-                # similar to substring, but scores more highly, as it's
-                # a word within the item
-                if query in atoms:
-                    score = 100.0 - (len(value) / len(query))
-                    rule = MATCH_ATOM
+        # split the item into "atoms", i.e. words separated by
+        # spaces or other non-word characters
+        if (match_on & MATCH_ATOM or
+                match_on & MATCH_INITIALS_CONTAIN or
+                match_on & MATCH_INITIALS_STARTSWITH):
+            atoms = [s.lower() for s in split_on_delimiters(value)]
+            # print('atoms : %s  -->  %s' % (value, atoms))
+            # initials of the atoms
+            initials = ''.join([s[0] for s in atoms if s])
 
-        if not score:
-            # `query` matches start (or all) of the initials of the
-            # atoms, e.g. ``himym`` matches "How I Met Your Mother"
-            # *and* "how i met your mother" (the ``capitals`` rule only
-            # matches the former)
-            if (match_on & MATCH_INITIALS_STARTSWITH and
-                    initials.startswith(query)):
-                score = 100.0 - (len(initials) / len(query))
-                rule = MATCH_INITIALS_STARTSWITH
+        if match_on & MATCH_ATOM:
+            # is `query` one of the atoms in item?
+            # similar to substring, but scores more highly, as it's
+            # a word within the item
+            if query in atoms:
+                score = 100.0 - (len(value) / len(query))
 
-            # `query` is a substring of initials, e.g. ``doh`` matches
-            # "The Dukes of Hazzard"
-            elif (match_on & MATCH_INITIALS_CONTAIN and
-                    query in initials):
-                score = 95.0 - (len(initials) / len(query))
-                rule = MATCH_INITIALS_CONTAIN
+                return (score, MATCH_ATOM)
 
-        if not score:
-            # `query` is a substring of item
-            if match_on & MATCH_SUBSTRING and query in value.lower():
-                    score = 90.0 - (len(value) / len(query))
-                    rule = MATCH_SUBSTRING
+        # `query` matches start (or all) of the initials of the
+        # atoms, e.g. ``himym`` matches "How I Met Your Mother"
+        # *and* "how i met your mother" (the ``capitals`` rule only
+        # matches the former)
+        if (match_on & MATCH_INITIALS_STARTSWITH and
+                initials.startswith(query)):
+            score = 100.0 - (len(initials) / len(query))
 
-        if not score:
-            # finally, assign a score based on how close together the
-            # characters in `query` are in item.
-            if match_on & MATCH_ALLCHARS:
-                search = self._search_for_query(query)
-                match = search(value)
-                if match:
-                    score = 100.0 / ((1 + match.start()) *
-                                     (match.end() - match.start() + 1))
-                    rule = MATCH_ALLCHARS
+            return (score, MATCH_INITIALS_STARTSWITH)
 
-        if score > 0:
-            return (score, rule)
+        # `query` is a substring of initials, e.g. ``doh`` matches
+        # "The Dukes of Hazzard"
+        elif (match_on & MATCH_INITIALS_CONTAIN and
+                query in initials):
+            score = 95.0 - (len(initials) / len(query))
+
+            return (score, MATCH_INITIALS_CONTAIN)
+
+        # `query` is a substring of item
+        if match_on & MATCH_SUBSTRING and query in value.lower():
+            score = 90.0 - (len(value) / len(query))
+
+            return (score, MATCH_SUBSTRING)
+
+        # finally, assign a score based on how close together the
+        # characters in `query` are in item.
+        if match_on & MATCH_ALLCHARS:
+            search = self._search_for_query(query)
+            match = search(value)
+            if match:
+                score = 100.0 / ((1 + match.start()) *
+                                 (match.end() - match.start() + 1))
+
+                return (score, MATCH_ALLCHARS)
+
+        # Nothing matched
         return (0, None)
 
     def _search_for_query(self, query):
@@ -1888,6 +1880,8 @@ class Workflow(object):
 
         """
 
+        start = time.time()
+
         try:
             func(self)
         except Exception as err:
@@ -1904,6 +1898,9 @@ class Workflow(object):
                               icon=ICON_ERROR)
                 self.send_feedback()
             return 1
+        finally:
+            self.logger.debug('Workflow finished in {:0.3f} seconds.'.format(
+                              time.time() - start))
         return 0
 
     # Alfred feedback methods ------------------------------------------
@@ -2002,7 +1999,7 @@ class Workflow(object):
 
         """
 
-        update_data = self.cached_data('__workflow_update_status')
+        update_data = self.cached_data('__workflow_update_status', max_age=0)
 
         if not update_data or not update_data.get('available'):
             return False
@@ -2010,9 +2007,12 @@ class Workflow(object):
         return update_data['available']
 
     def check_update(self, force=False):
-        """Check if it's time to update and call update script if it is.
+        """Call update script if it's time to check for a new release
 
         .. versionadded:: 1.9
+
+        The update script will be run in the background, so it won't
+        interfere in the execution of your workflow.
 
         See :ref:`manual-updates` in the :ref:`user-manual` for detailed
         information on how to enable your workflow to update itself.
@@ -2108,21 +2108,23 @@ class Workflow(object):
         """
         if not service:
             service = self.bundleid
+
         try:
-            retcode, output = self._call_security('add-generic-password',
-                                                  service, account,
-                                                  '-w', password)
+            self._call_security('add-generic-password', service, account,
+                                '-w', password)
             self.logger.debug('Saved password : %s:%s', service, account)
+
         except PasswordExists:
             self.logger.debug('Password exists : %s:%s', service, account)
             current_password = self.get_password(account, service)
+
             if current_password == password:
                 self.logger.debug('Password unchanged')
+
             else:
                 self.delete_password(account, service)
-                retcode, output = self._call_security('add-generic-password',
-                                                      service, account,
-                                                      '-w', password)
+                self._call_security('add-generic-password', service,
+                                    account, '-w', password)
                 self.logger.debug('save_password : %s:%s', service, account)
 
     def get_password(self, account, service=None):
@@ -2142,9 +2144,11 @@ class Workflow(object):
 
         if not service:
             service = self.bundleid
-        retcode, password = self._call_security('find-generic-password',
-                                                service, account, '-w')
-        self.logger.debug('get_password : %s:%s', service, account)
+
+        password = self._call_security('find-generic-password', service,
+                                       account, '-w')
+        self.logger.debug('Got password : %s:%s', service, account)
+
         return password
 
     def delete_password(self, account, service=None):
@@ -2162,9 +2166,10 @@ class Workflow(object):
 
         if not service:
             service = self.bundleid
-        retcode, output = self._call_security('delete-generic-password',
-                                              service, account)
-        self.logger.debug('delete_password : %s:%s', service, account)
+
+        self._call_security('delete-generic-password', service, account)
+
+        self.logger.debug('Deleted password : %s:%s', service, account)
 
     ####################################################################
     # Methods for workflow:* magic args
@@ -2354,4 +2359,4 @@ class Workflow(object):
             err = KeychainError('Unknown Keychain error : %s' % output)
             err.retcode = retcode
             raise err
-        return (retcode, output)
+        return output
