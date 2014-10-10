@@ -1,17 +1,16 @@
-import subprocess
 from workflow import Workflow, PasswordNotFound
+
+from cask_helpers import execute_cask_command
 
 
 def get_all_casks():
-    cmd, err = subprocess.Popen(
-        ['/usr/local/bin/brew', 'cask', 'search'], stdout=subprocess.PIPE).communicate()
-    return cmd.splitlines()[1:]
+    result = execute_cask_command()
+    return result.splitlines()[1:]
 
 
 def get_installed_casks():
-    cmd, err = subprocess.Popen(
-        ['/usr/local/bin/brew', 'cask', 'list'], stdout=subprocess.PIPE).communicate()
-    return cmd.splitlines()
+    result = execute_cask_command('list')
+    return result.splitlines()
 
 
 if __name__ == '__main__':

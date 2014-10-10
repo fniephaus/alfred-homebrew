@@ -1,9 +1,9 @@
 import sys
 import os
-import subprocess
 
 from workflow import Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
+from cask_helpers import execute_cask_command
 import cask_refresh
 
 ACTIONS = [
@@ -84,8 +84,7 @@ def complete(wf):
     global ACTIONS
 
     if wf.update_available:
-        subtitle = 'New: %s' % wf.update_info['body']
-        wf.add_item("An update is available!", subtitle,
+        wf.add_item("An update is available!",
                     autocomplete='workflow:update', valid=False)
 
     if len(wf.args):
@@ -102,7 +101,7 @@ def complete(wf):
     elif query and query.startswith('search'):
         filter_all_casks(query)
     elif query and query.startswith('alfred'):
-        info, _ = subprocess.Popen('export PATH=/usr/local/bin:$PATH && /usr/local/bin/brew cask alfred status', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        info = execute_cask_command('alfred')
     
         wf.add_item(info)
         if 'not linked' in info:
@@ -126,22 +125,22 @@ def complete(wf):
 
 def filter_all_casks(query):
     formulas = wf.cached_data('cask_all', max_age=0)
+    if not formulas:
+        formulas = cask_refresh.get_all_casks()
+
     query_filter = query.split()
     if len(query_filter) > 1:
         formulas = wf.filter(query_filter[1],
                              formulas, match_on=MATCH_SUBSTRING)
 
     for formula in formulas:
-        formula = formula.rsplit()
-        name = formula[0]
-
         if query.startswith('install'):
             wf.add_item(
-                name, "Install", arg='brew cask install %s' %
-                name, valid=True)
+                formula, "Install", arg='brew cask install %s' %
+                formula, valid=True)
         else:
-            wf.add_item(name, "Open homepage", arg='brew cask home %s' %
-                        name, valid=True)
+            wf.add_item(formula, "Open homepage", arg='brew cask home %s' %
+                        formula, valid=True)
 
 
 def filter_installed_casks(query):
@@ -152,6 +151,7 @@ def filter_installed_casks(query):
                              formulas, match_on=MATCH_SUBSTRING)
 
     for formula in formulas:
+        name = formula.split(' ')[0]
         if query.startswith('uninstall'):
             wf.add_item(formula, "Uninstall", arg='brew cask uninstall %s' %
                         name, valid=True)
@@ -163,6 +163,6 @@ def filter_installed_casks(query):
 if __name__ == '__main__':
     wf = Workflow(update_settings={
         'github_slug': 'fniephaus/alfred-homebrew',
-        'version': 'v1.1',
+        'version': open(os.path.join(os.path.dirname(__file__), 'version')).read(),
     })
     sys.exit(wf.run(complete))

@@ -84,8 +84,7 @@ def complete(wf):
     global ACTIONS
 
     if wf.update_available:
-        subtitle = 'New: %s' % wf.update_info['body']
-        wf.add_item("An update is available!", subtitle,
+        wf.add_item("An update is available!",
                     autocomplete='workflow:update', valid=False)
 
     if len(wf.args):
@@ -130,15 +129,12 @@ def filter_all_packages(query):
                              formulas, match_on=MATCH_SUBSTRING)
 
     for formula in formulas:
-        formula = formula.rsplit()
-        name = formula[0]
-
         if query.startswith('install'):
-            wf.add_item(name, "Install", arg='brew install %s' %
-                        name, valid=True)
+            wf.add_item(formula, "Install", arg='brew install %s' %
+                        formula, valid=True)
         else:
-            wf.add_item(name, "Open on GitHub", arg='open %s/%s.rb' %
-                        (FORMULA_URL, name), valid=True)
+            wf.add_item(formula, "Open on GitHub", arg='open %s/%s.rb' %
+                        (FORMULA_URL, formula), valid=True)
 
 
 def filter_installed_packages(query):
@@ -152,10 +148,7 @@ def filter_installed_packages(query):
                              formulas, match_on=MATCH_SUBSTRING)
 
     for formula in formulas:
-        formula = formula.rsplit()
-        name = formula[0]
-        formula = "%s %s" % (name, formula[1])
-
+        name = formula.split(' ')[0]
         if query.startswith('uninstall'):
             wf.add_item(formula, "Uninstall", arg='brew uninstall %s' %
                         name, valid=True)
@@ -171,6 +164,6 @@ def refresh_cache(wf):
 if __name__ == '__main__':
     wf = Workflow(update_settings={
         'github_slug': 'fniephaus/alfred-homebrew',
-        'version': 'v1.1',
+        'version': open(os.path.join(os.path.dirname(__file__), 'version')).read(),
     })
     sys.exit(wf.run(complete))
