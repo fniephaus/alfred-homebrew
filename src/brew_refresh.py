@@ -3,19 +3,19 @@ from workflow import Workflow, PasswordNotFound
 
 
 def get_all_packages():
-    cmd, err = subprocess.Popen(
+    cmd, _ = subprocess.Popen(
         ['/usr/local/bin/brew', 'search'], stdout=subprocess.PIPE).communicate()
     return cmd.splitlines()
 
 
 def get_installed_packages():
-    cmd, err = subprocess.Popen(
+    cmd, _ = subprocess.Popen(
         ['/usr/local/bin/brew', 'list', '--versions'], stdout=subprocess.PIPE).communicate()
     return cmd.splitlines()
 
 
 def get_info():
-    cmd, err = subprocess.Popen(
+    cmd, _ = subprocess.Popen(
         ['/usr/local/bin/brew', 'info'], stdout=subprocess.PIPE).communicate()
     return cmd
 
