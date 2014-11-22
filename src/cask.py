@@ -7,17 +7,14 @@ import os
 from workflow import Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
 
-import brew_refresh
+import cask_refresh
 
 WF = Workflow(update_settings={
     'github_slug': 'fniephaus/alfred-homebrew',
     'version': open(os.path.join(os.path.dirname(__file__), 'version')).read(),
 })
 
-FORMULA_URL = 'https://github.com/Homebrew/homebrew/tree/master/Library/Formula'
 
-
-# name and description are search keys
 def search_key_for_action(action):
     elements = []
     elements.append(action['name'])
@@ -25,8 +22,8 @@ def search_key_for_action(action):
     return u' '.join(elements)
 
 
-def get_all_packages(query):
-    formulas = WF.cached_data('brew_all', brew_refresh.get_all_packages, max_age=3600)
+def get_all_casks(query):
+    formulas = WF.cached_data('cask_all', cask_refresh.get_all_casks, max_age=3600)
 
     query_filter = query.split()
     if len(query_filter) > 1:
@@ -35,9 +32,9 @@ def get_all_packages(query):
     return formulas
 
 
-def get_installed_packages(query):
-    formulas = WF.cached_data('brew_installed', brew_refresh.get_installed_packages, max_age=3600)
-
+def get_installed_casks(query):
+    formulas = WF.cached_data(
+        'cask_installed', cask_refresh.get_installed_casks, max_age=3600)
     query_filter = query.split()
     if len(query_filter) > 1:
         return WF.filter(query_filter[1],
@@ -46,7 +43,7 @@ def get_installed_packages(query):
 
 
 if __name__ == '__main__':
-    from brew_actions import ACTIONS
+    from cask_actions import ACTIONS
 
     if WF.update_available:
         WF.add_item("An update is available!",
@@ -56,25 +53,33 @@ if __name__ == '__main__':
     query = WF.args[0] if len(WF.args) else None
 
     if query and query.startswith('install'):
-        for formula in get_all_packages(query):
-            WF.add_item(formula, "Install", arg='brew install %s' %
-                        formula, valid=True)
-    elif query and query.startswith('search'):
-        for formula in get_all_packages(query):
-            WF.add_item(formula, "Open on GitHub", arg='open %s/%s.rb' %
-                        (FORMULA_URL, formula), valid=True)
-    elif query and query.startswith('uninstall'):
-        for formula in get_install_packages(query):
-            WF.add_item(formula, "Uninstall", arg='brew uninstall %s' %
-                        name, valid=True)
-        filter_installed_packages(query)
-    elif query and query.startswith('list'):
-        for formula in get_install_packages(query):
+        for formula in get_all_casks(query):
             WF.add_item(
-                formula, "Open on GitHub", arg='open %s/%s.rb' % (FORMULA_URL, name), valid=True)
-    elif query and query.startswith('info'):
-        info = WF.cached_data('brew_info', brew_refresh.get_info, max_age=3600)
-        WF.add_item(info, autocomplete='')
+                formula, "Install", arg='brew cask install %s' %
+                formula, valid=True)
+    elif query and any(query.startswith(x) for x in ['search', 'home']):
+        for formula in get_all_casks(query):
+            WF.add_item(formula, "Open homepage", arg='brew cask home %s' %
+                        formula, valid=True)
+    elif query and query.startswith('uninstall'):
+        for formula in get_installed_casks(query):
+            name = formula.split(' ')[0]
+            WF.add_item(formula, "Uninstall", arg='brew cask uninstall %s' %
+                        name, valid=True)
+    elif query and query.startswith('list'):
+        for formula in get_installed_casks(query):
+            WF.add_item(
+                formula, "Open homepage", arg='brew cask home %s' % formula, valid=True)
+    elif query and query.startswith('alfred'):
+        info = cask_refresh.execute_cask_command('alfred status')
+        WF.add_item(info)
+        if 'linked' in info:  # make sure it's not an error
+            if 'not linked' in info:
+                WF.add_item('Add Caskroom to alfred search paths',
+                            arg='brew cask alfred link', valid=True)
+            else:
+                WF.add_item('Remove Caskroom from Alfred search paths',
+                            arg='brew cask alfred unlink', valid=True)
     else:
         # filter actions by query
         if query:
@@ -88,5 +93,5 @@ if __name__ == '__main__':
     WF.send_feedback()
 
     # refresh cache
-    cmd = ['/usr/bin/python', WF.workflowfile('brew_refresh.py')]
-    run_in_background('brew_refresh', cmd)
+    cmd = ['/usr/bin/python', WF.workflowfile('cask_refresh.py')]
+    run_in_background('cask_refresh', cmd)

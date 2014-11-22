@@ -8,28 +8,7 @@
 #
 
 """
-Basic, ``requests``-like API for retrieving data from the Web.
-
-Intended to replace basic functionality of ``requests``, but at
-1/200th of the size.
-
-Features:
-
-- JSON requests and responses
-- Form data submission
-- File uploads
-- Redirection support
-
-**WARNING**: As ``web.py`` is based on Python 2's standard HTTP libraries, it
-**does not** verify SSL certificates when establishing HTTPS connections.
-
-As a result, you *must not* use this module for sensitive connections.
-
-If you require certificate verification (which you really should), you should
-use the `requests <http://docs.python-requests.org/en/latest/>`_
-Python library (upon which the `web.py` API is based) or the
-command-line tool `cURL <http://curl.haxx.se/>`_ instead.
-
+A lightweight HTTP library with a requests-like interface.
 """
 
 from __future__ import print_function
@@ -51,8 +30,7 @@ USER_AGENT = u'alfred-workflow-0.1'
 # Valid characters for multipart form data boundaries
 BOUNDARY_CHARS = string.digits + string.ascii_letters
 
-# Table mapping response codes to messages; entries have the
-# form {code: message}.
+# HTTP response codes
 RESPONSES = {
     100: 'Continue',
     101: 'Switching Protocols',
@@ -117,7 +95,7 @@ def str_dict(dic):
 class NoRedirectHandler(urllib2.HTTPRedirectHandler):
     """Prevent redirections"""
 
-    def redirect_request(self, req, fp, code, msg, hdrs, newurl):
+    def redirect_request(self, *args):
         return None
 
 
@@ -185,8 +163,8 @@ class Response(object):
     def json(self):
         """Decode response contents as JSON.
 
-        :returns: decoded JSON
-        :rtype: ``list`` / ``dict``
+        :returns: object decoded from JSON
+        :rtype: :class:`list` / :class:`dict`
 
         """
 
@@ -194,9 +172,9 @@ class Response(object):
 
     @property
     def encoding(self):
-        """Return text encoding of document or ``None``
+        """Text encoding of document or ``None``
 
-        :returns: ``str``
+        :returns: :class:`str` or ``None``
 
         """
 
@@ -207,9 +185,10 @@ class Response(object):
 
     @property
     def content(self):
-        """Return raw content of response (i.e. bytes)
+        """Raw content of response (i.e. bytes)
 
-        :returns: ``str``
+        :returns: Body of HTTP response
+        :rtype: :class:`str`
 
         """
 
@@ -220,9 +199,13 @@ class Response(object):
 
     @property
     def text(self):
-        """Return unicode-decoded content of response.
+        """Unicode-decoded content of response body.
 
-        :returns: ``unicode``
+        If no encoding can be determined from HTTP headers or the content
+        itself, the encoded response body will be returned instead.
+
+        :returns: Body of HTTP response
+        :rtype: :class:`unicode` or :class:`str`
 
         """
 
@@ -276,7 +259,7 @@ class Response(object):
         error will be instance of :class:`urllib2.HTTPError`
         """
 
-        if self.error:
+        if self.error is not None:
             raise self.error
         return
 
@@ -339,15 +322,16 @@ def request(method, url, params=None, data=None, headers=None, cookies=None,
     :param url: URL to open
     :type url: ``unicode``
     :param params: mapping of URL parameters
-    :type params: ``dict``
-    :param data: mapping of form data ``{'field_name': 'value'}`` or ``str``
-    :type data: ``dict`` or ``str``
+    :type params: :class:`dict`
+    :param data: mapping of form data ``{'field_name': 'value'}`` or
+        :class:`str`
+    :type data: :class:`dict` or :class:`str`
     :param headers: HTTP headers
-    :type headers: ``dict``
+    :type headers: :class:`dict`
     :param cookies: cookies to send to server
-    :type cookies: ``dict``
-    :param files: files to upload
-    :type files:
+    :type cookies: :class:`dict`
+    :param files: files to upload (see below).
+    :type files: :class:`dict`
     :param auth: username, password
     :type auth: ``tuple``
     :param timeout: connection timeout limit in seconds
@@ -355,6 +339,19 @@ def request(method, url, params=None, data=None, headers=None, cookies=None,
     :param allow_redirects: follow redirections
     :type allow_redirects: ``Boolean``
     :returns: :class:`Response` object
+
+
+    The ``files`` argument is a dictionary::
+
+        {'fieldname' : { 'filename': 'blah.txt',
+                         'content': '<binary data>',
+                         'mimetype': 'text/plain'}
+        }
+
+    * ``fieldname`` is the name of the field in the HTML form.
+    * ``mimetype`` is optional. If not provided, :mod:`mimetypes` will
+      be used to guess the mimetype, or ``application/octet-stream``
+      will be used.
 
     """
 
@@ -366,7 +363,7 @@ def request(method, url, params=None, data=None, headers=None, cookies=None,
     if not allow_redirects:
         openers.append(NoRedirectHandler())
 
-    if auth:  # Add authorisation handler
+    if auth is not None:  # Add authorisation handler
         username, password = auth
         password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
         password_manager.add_password(None, url, username, password)
@@ -405,7 +402,7 @@ def request(method, url, params=None, data=None, headers=None, cookies=None,
 
 def get(url, params=None, headers=None, cookies=None, auth=None,
         timeout=60, allow_redirects=True):
-    """Initiate a GET request. Arguments as for :func:`request` function.
+    """Initiate a GET request. Arguments as for :func:`request`.
 
     :returns: :class:`Response` instance
 
@@ -417,7 +414,7 @@ def get(url, params=None, headers=None, cookies=None, auth=None,
 
 def post(url, params=None, data=None, headers=None, cookies=None, files=None,
          auth=None, timeout=60, allow_redirects=False):
-    """Initiate a POST request. Arguments as for :func:`request` function.
+    """Initiate a POST request. Arguments as for :func:`request`.
 
     :returns: :class:`Response` instance
 
@@ -455,7 +452,7 @@ def encode_multipart_formdata(fields, files):
         :param filename: filename of file
         :type filename: unicode/string
         :returns: mime-type, e.g. ``text/html``
-        :rtype: :class:``str``
+        :rtype: :class::class:`str`
 
         """
 

@@ -8,55 +8,10 @@
 #
 
 """
-Helper library for Alfred 2 workflow authors.
+The :class:`Workflow` object is the main interface to this library.
 
-You probably only want to use the :class:`Workflow` class directly.
-
-The :class:`Item` and :class:`Settings` classes are supporting classes,
-which are meant to be accessed via :class:`Workflow` instances.
-
-Classes :class:`SerializerManager`, :class:`JSONSerializer`,
-:class:`CPickleSerializer` and :class:`PickleSerializer` are part of
-the data/cache serialization features of :class:`Workflow`, accessible
-by the module-level ``manager`` object.
-
-To register a new serializer, do:
-
-.. code-block:: python
-   :linenos:
-
-    from workflow import Workflow, manager
-
-
-    class MySerializer(object):
-
-        @classmethod
-        def load(cls, file_obj):
-            # load data from file_obj
-
-        @classmethod
-        def dump(cls, data, file_obj):
-            # write data to file_obj
-
-    manager.register('myformat', MySerializer())
-
-
-The name under which you register your serializer will be used as the
-file extension of any saved files.
-
-To set the default serializer for cached data,
-set :attr:`Workflow.cache_serializer`, and to set the default
-serializer for stored data, set :attr:`Workflow.data_serializer`.
-
-Cached data is stored in the Workflow's cache directory, which is intended
-for temporary and easily regenerated data.
-
-Stored data is stored in the Workflow's data directory, which is intended
-for data that is user-generated or not easily recreated.
-
-The default serializer for both cached and stored data is ``cpickle``.
-
-For more information, please see :ref:`Persistent data <persistent-data>`.
+See :ref:`setup` in the :ref:`user-manual` for an example of how to set
+up your Python script to best utilise the :class:`Workflow` object.
 
 """
 
@@ -99,19 +54,23 @@ ICON_ROOT = '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources'
 
 ICON_ACCOUNT = os.path.join(ICON_ROOT, 'Accounts.icns')
 ICON_BURN = os.path.join(ICON_ROOT, 'BurningIcon.icns')
+ICON_CLOCK = os.path.join(ICON_ROOT, 'Clock.icns')
 ICON_COLOR = os.path.join(ICON_ROOT, 'ProfileBackgroundColor.icns')
 ICON_COLOUR = ICON_COLOR  # Queen's English, if you please
+ICON_EJECT = os.path.join(ICON_ROOT, 'EjectMediaIcon.icns')
 # Shown when a workflow throws an error
 ICON_ERROR = os.path.join(ICON_ROOT, 'AlertStopIcon.icns')
 ICON_FAVORITE = os.path.join(ICON_ROOT, 'ToolbarFavoritesIcon.icns')
 ICON_FAVOURITE = ICON_FAVORITE
 ICON_GROUP = os.path.join(ICON_ROOT, 'GroupIcon.icns')
 ICON_HELP = os.path.join(ICON_ROOT, 'HelpIcon.icns')
+ICON_HOME = os.path.join(ICON_ROOT, 'HomeFolderIcon.icns')
 ICON_INFO = os.path.join(ICON_ROOT, 'ToolbarInfo.icns')
-ICON_MUSIC = os.path.join(ICON_ROOT, 'ToolbarMusicFolderIcon.icns')
 ICON_NETWORK = os.path.join(ICON_ROOT, 'GenericNetworkIcon.icns')
 ICON_NOTE = os.path.join(ICON_ROOT, 'AlertNoteIcon.icns')
 ICON_SETTINGS = os.path.join(ICON_ROOT, 'ToolbarAdvanced.icns')
+ICON_SWIRL = os.path.join(ICON_ROOT, 'ErasingIcon.icns')
+ICON_SWITCH = os.path.join(ICON_ROOT, 'General.icns')
 ICON_SYNC = os.path.join(ICON_ROOT, 'Sync.icns')
 ICON_TRASH = os.path.join(ICON_ROOT, 'TrashIcon.icns')
 ICON_USER = os.path.join(ICON_ROOT, 'UserIcon.icns')
@@ -120,7 +79,7 @@ ICON_WEB = os.path.join(ICON_ROOT, 'BookmarkIcon.icns')
 
 ####################################################################
 # non-ASCII to ASCII diacritic folding.
-# Used by ``fold_to_ascii`` method
+# Used by `fold_to_ascii` method
 ####################################################################
 
 ASCII_REPLACEMENTS = {
@@ -416,27 +375,41 @@ ASCII_REPLACEMENTS = {
 ####################################################################
 
 # Anchor characters in a name
+#: Characters that indicate the beginning of a "word" in CamelCase
 INITIALS = string.ascii_uppercase + string.digits
 
-# Split on non-letters, numbers
+#: Split on non-letters, numbers
 split_on_delimiters = re.compile('[^a-zA-Z0-9]').split
 
 # Match filter flags
+#: Match items that start with ``query``
 MATCH_STARTSWITH = 1
+#: Match items whose capital letters start with ``query``
 MATCH_CAPITALS = 2
+#: Match items with a component "word" that matches ``query``
 MATCH_ATOM = 4
+#: Match items whose initials (based on atoms) start with ``query``
 MATCH_INITIALS_STARTSWITH = 8
+#: Match items whose initials (based on atoms) contain ``query``
 MATCH_INITIALS_CONTAIN = 16
+#: Combination of :const:`MATCH_INITIALS_STARTSWITH` and
+#: :const:`MATCH_INITIALS_CONTAIN`
 MATCH_INITIALS = 24
+#: Match items if ``query`` is a substring
 MATCH_SUBSTRING = 32
+#: Match items if all characters in ``query`` appear in the item in order
 MATCH_ALLCHARS = 64
+#: Combination of all other ``MATCH_*`` constants
 MATCH_ALL = 127
+
 
 ####################################################################
 # Used by `Workflow.check_update`
 ####################################################################
 
-DEFAULT_FREQUENCY = 1
+# Number of days to wait between checking for updates to the workflow
+DEFAULT_UPDATE_FREQUENCY = 1
+
 
 ####################################################################
 # Keychain access errors
@@ -445,7 +418,7 @@ DEFAULT_FREQUENCY = 1
 class KeychainError(Exception):
     """Raised by methods :meth:`Workflow.save_password`,
     :meth:`Workflow.get_password` and :meth:`Workflow.delete_password`
-    when ``security`` CLI app returns an unknown code.
+    when ``security`` CLI app returns an unknown error code.
 
     """
 
@@ -460,8 +433,9 @@ class PasswordNotFound(KeychainError):
 class PasswordExists(KeychainError):
     """Raised when trying to overwrite an existing account password.
 
-    The API user should never receive this error: it is used internally
-    by the :meth:`Workflow.save_password` method.
+    You should never receive this error: it is used internally
+    by the :meth:`Workflow.save_password` method to know if it needs
+    to delete the old password first (a Keychain implementation detail).
 
     """
 
@@ -495,36 +469,15 @@ class SerializerManager(object):
 
     .. versionadded:: 1.8
 
-    A configured instance of this class is available at ``workflow.manager``.
+    A configured instance of this class is available at
+    ``workflow.manager``.
 
     Use :meth:`register()` to register new (or replace
     existing) serializers, which you can specify by name when calling
     :class:`Workflow` data storage methods.
 
-    A ``serializer`` object must have ``load()`` and ``dump()`` methods
-    that work the same way as in the built-in :mod:`json` and
-    :mod:`pickle` libraries, i.e.:
-
-    .. code-block:: python
-        :linenos:
-
-        # Reading
-        data = serializer.load(open('filename', 'rb'))
-        # Writing
-        serializer.dump(data, open('filename', 'wb'))
-
-    There are 3 pre-configured serializers: ``json``, ``pickle``
-    and ``cpickle``. The default is ``cpickle``, as it is very fast and
-    can handle most Python objects.
-
-    If you need custom pickling, use the ``pickle`` serializer instead.
-
-    Be careful using ``json``: JSON only supports a subset of Python's
-    native data types (e.g., no ``tuple`` or :class:`set`) and
-    doesn't, for example, support ``dict`` keys that aren't strings.
-
-    See the built-in :mod:`cPickle`, :mod:`pickle` and :mod:`json`
-    libraries for more information on the serialization formats.
+    See :ref:`manual-serialization` and :ref:`manual-persistent-data`
+    for further information.
 
     """
 
@@ -536,8 +489,9 @@ class SerializerManager(object):
 
         Raises :class:`AttributeError` if ``serializer`` in invalid.
 
-        **Note:** ``name`` will be used as the file extension of the
-        saved files.
+        .. note::
+
+            ``name`` will be used as the file extension of the saved files.
 
         :param name: Name to register ``serializer`` under
         :type name: ``unicode`` or ``str``
@@ -603,10 +557,32 @@ class JSONSerializer(object):
 
     @classmethod
     def load(cls, file_obj):
+        """Load serialized object from open JSON file.
+
+        .. versionadded:: 1.8
+
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+        :returns: object loaded from JSON file
+        :rtype: object
+
+        """
+
         return json.load(file_obj)
 
     @classmethod
     def dump(cls, obj, file_obj):
+        """Serialize object ``obj`` to open JSON file.
+
+        .. versionadded:: 1.8
+
+        :param obj: Python object to serialize
+        :type obj: JSON-serializable data structure
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+
+        """
+
         return json.dump(obj, file_obj, indent=2, encoding='utf-8')
 
 
@@ -622,10 +598,32 @@ class CPickleSerializer(object):
 
     @classmethod
     def load(cls, file_obj):
+        """Load serialized object from open pickle file.
+
+        .. versionadded:: 1.8
+
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+        :returns: object loaded from pickle file
+        :rtype: object
+
+        """
+
         return cPickle.load(file_obj)
 
     @classmethod
     def dump(cls, obj, file_obj):
+        """Serialize object ``obj`` to open pickle file.
+
+        .. versionadded:: 1.8
+
+        :param obj: Python object to serialize
+        :type obj: Python object
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+
+        """
+
         return cPickle.dump(obj, file_obj, protocol=-1)
 
 
@@ -640,10 +638,32 @@ class PickleSerializer(object):
 
     @classmethod
     def load(cls, file_obj):
+        """Load serialized object from open pickle file.
+
+        .. versionadded:: 1.8
+
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+        :returns: object loaded from pickle file
+        :rtype: object
+
+        """
+
         return pickle.load(file_obj)
 
     @classmethod
     def dump(cls, obj, file_obj):
+        """Serialize object ``obj`` to open pickle file.
+
+        .. versionadded:: 1.8
+
+        :param obj: Python object to serialize
+        :type obj: Python object
+        :param file_obj: file handle
+        :type file_obj: ``file`` object
+
+        """
+
         return pickle.dump(obj, file_obj, protocol=-1)
 
 
@@ -769,8 +789,8 @@ class Settings(dict):
         """Load cached settings from JSON file `self._filepath`"""
 
         self._nosave = True
-        with open(self._filepath, 'rb') as file:
-            for key, value in json.load(file, encoding='utf-8').items():
+        with open(self._filepath, 'rb') as file_obj:
+            for key, value in json.load(file_obj, encoding='utf-8').items():
                 self[key] = value
         self._nosave = False
 
@@ -786,12 +806,17 @@ class Settings(dict):
         data = {}
         for key, value in self.items():
             data[key] = value
-        with open(self._filepath, 'wb') as file:
-            json.dump(data, file, sort_keys=True, indent=2, encoding='utf-8')
+        with open(self._filepath, 'wb') as file_obj:
+            json.dump(data, file_obj, sort_keys=True, indent=2,
+                      encoding='utf-8')
 
     # dict methods
     def __setitem__(self, key, value):
         super(Settings, self).__setitem__(key, value)
+        self.save()
+
+    def __delitem__(self, key):
+        super(Settings, self).__delitem__(key)
         self.save()
 
     def update(self, *args, **kwargs):
@@ -813,6 +838,12 @@ class Workflow(object):
             exists, :class:`Workflow.settings` will be pre-populated with
             ``default_settings``.
         :type default_settings: :class:`dict`
+        :param update_settings: settings for updating your workflow from GitHub.
+            This must be a :class:`dict` that contains ``github_slug`` and
+            ``version`` keys. ``github_slug`` is of the form ``username/repo``
+            and ``version`` **must** correspond to the tag of a release.
+            See :ref:`updates` for more information.
+        :type update_settings: :class:`dict`
         :param input_encoding: encoding of command line arguments
         :type input_encoding: :class:`unicode`
         :param normalization: normalisation to apply to CLI args.
@@ -831,12 +862,12 @@ class Workflow(object):
     # won't want to change this
     item_class = Item
 
-    def __init__(self, default_settings=None, update_config=None,
+    def __init__(self, default_settings=None, update_settings=None,
                  input_encoding='utf-8', normalization='NFC',
                  capture_args=True, libraries=None):
 
         self._default_settings = default_settings or {}
-        self._update_config = update_config
+        self._update_settings = update_settings or {}
         self._input_encoding = input_encoding
         self._normalizsation = normalization
         self._capture_args = capture_args
@@ -855,9 +886,11 @@ class Workflow(object):
         self._items = []
         self._alfred_env = None
         self._search_pattern_cache = {}
+
         if libraries:
             sys.path = libraries + sys.path
-        if update_config:
+
+        if update_settings:
             self.check_update()
 
     ####################################################################
@@ -892,7 +925,7 @@ class Workflow(object):
                                       ``1`` = Alternative actions only,
                                       ``2`` = Selected result only,
                                       ``3`` = Never
-        alfred_version                Alfred version number, e.g. ``2.4``
+        alfred_version                Alfred version number, e.g. ``'2.4'``
         alfred_version_build          Alfred build number, e.g. ``277``
         alfred_workflow_bundleid      Bundle ID, e.g.
                                       ``net.deanishe.alfred-mailto``
@@ -902,7 +935,8 @@ class Workflow(object):
         alfred_workflow_uid           UID of workflow
         ============================  =========================================
 
-        **Note:** all values are Unicode strings
+        **Note:** all values are Unicode strings except ``version_build`` and
+        ``theme_subtext``, which are integers.
 
         :returns: ``dict`` of Alfred's environmental variables without the
             ``alfred_`` prefix, e.g. ``preferences``, ``workflow_data``.
@@ -931,7 +965,10 @@ class Workflow(object):
             value = os.getenv(key)
 
             if isinstance(value, str):
-                value = self.decode(value)
+                if key in ('alfred_version_build', 'alfred_theme_subtext'):
+                    value = int(value)
+                else:
+                    value = self.decode(value)
 
             data[key[7:]] = value
 
@@ -941,11 +978,7 @@ class Workflow(object):
 
     @property
     def info(self):
-        """`dict` of ``info.plist`` contents.
-
-        :returns: ``dict``
-
-        """
+        """:class:`dict` of ``info.plist`` contents."""
 
         if not self._info_loaded:
             self._load_info_plist()
@@ -953,7 +986,7 @@ class Workflow(object):
 
     @property
     def bundleid(self):
-        """Workflow bundle ID from ``info.plist``.
+        """Workflow bundle ID from Alfred's environmental vars or ``info.plist``.
 
         :returns: bundle ID
         :rtype: ``unicode``
@@ -970,7 +1003,7 @@ class Workflow(object):
 
     @property
     def name(self):
-        """Workflow name from ``info.plist``.
+        """Workflow name from Alfred's environmental vars or ``info.plist``.
 
         :returns: workflow name
         :rtype: ``unicode``
@@ -979,39 +1012,11 @@ class Workflow(object):
 
         if not self._name:
             if self.alfred_env.get('workflow_name'):
-                self._name = self.alfred_env.get('workflow_name')
+                self._name = self.decode(self.alfred_env.get('workflow_name'))
             else:
-                self._name = unicode(self.info['name'], 'utf-8')
+                self._name = self.decode(self.info['name'])
 
         return self._name
-
-    @property
-    def update_available(self):
-        """Is an update available?
-
-        :returns: ``True`` if an update is available, else ``False``
-        :rtype: ``Boolean``
-
-        """
-
-        update_data = self.cached_data('__workflow_update_available')
-        if update_data is None or 'available' not in update_data:
-            return False
-        return update_data['available']
-
-    @property
-    def update_info(self):
-        """Returns GitHub release information
-
-        :returns: GitHub release information if available, else ``None``
-        :rtype: ``dict``
-
-        """
-
-        update_data = self.cached_data('__workflow_update_available')
-        if update_data is None or 'release' not in update_data:
-            return None
-        return update_data['release']
 
     # Workflow utility methods -----------------------------------------
 
@@ -1025,9 +1030,10 @@ class Workflow(object):
         ``normalization`` arguments passed to :class:`Workflow` (``UTF-8``
         and ``NFC`` are the defaults).
 
-        If :class:`Workflow` is called with ``capture_args=True`` (the default),
-        :class:`Workflow` will look for certain ``workflow:*`` args and, if
-        found, perform the corresponding actions and exit the workflow.
+        If :class:`Workflow` is called with ``capture_args=True``
+        (the default), :class:`Workflow` will look for certain
+        ``workflow:*`` args and, if found, perform the corresponding
+        actions and exit the workflow.
 
         See :ref:`Magic arguments <magic-arguments>` for details.
 
@@ -1035,7 +1041,7 @@ class Workflow(object):
 
         msg = None
         args = [self.decode(arg) for arg in sys.argv[1:]]
-        if len(args) and self._capture_args:  # pragma: no cover
+        if len(args) and self._capture_args:
             if 'workflow:openlog' in args:
                 msg = 'Opening workflow log file'
                 self.open_log()
@@ -1074,8 +1080,10 @@ class Workflow(object):
                 if '__workflow_diacritic_folding' in self.settings:
                     del self.settings['__workflow_diacritic_folding']
             elif 'workflow:update' in args:
-                msg = 'Updating workflow'
-                self.start_update()
+                if self.start_update():
+                    msg = 'Downloading and installing update ...'
+                else:
+                    msg = 'No update available'
 
             if msg:
                 self.logger.debug(msg)
@@ -1101,6 +1109,7 @@ class Workflow(object):
 
         if self.alfred_env.get('workflow_cache'):
             dirpath = self.alfred_env.get('workflow_cache')
+
         else:
             dirpath = os.path.join(
                 os.path.expanduser(
@@ -1126,6 +1135,7 @@ class Workflow(object):
 
         if self.alfred_env.get('workflow_data'):
             dirpath = self.alfred_env.get('workflow_data')
+
         else:
             dirpath = os.path.join(os.path.expanduser(
                 '~/Library/Application Support/Alfred 2/Workflow Data/'),
@@ -1147,19 +1157,25 @@ class Workflow(object):
             # the library is in. CWD will be the workflow root if
             # a workflow is being run in Alfred
             candidates = [
-                os.path.abspath(os.getcwd()),
+                os.path.abspath(os.getcwdu()),
                 os.path.dirname(os.path.abspath(os.path.dirname(__file__)))]
 
             # climb the directory tree until we find `info.plist`
             for dirpath in candidates:
 
+                # Ensure directory path is Unicode
+                dirpath = self.decode(dirpath)
+
                 while True:
                     if os.path.exists(os.path.join(dirpath, 'info.plist')):
                         self._workflowdir = dirpath
                         break
+
                     elif dirpath == '/':
                         # no `info.plist` found
                         break
+
+                    # Check the parent directory
                     dirpath = os.path.dirname(dirpath)
 
                 # No need to check other candidates
@@ -1224,10 +1240,11 @@ class Workflow(object):
     @property
     def logger(self):
         """Create and return a logger that logs to both console and
-        a log file. Use `~Workflow.openlog` to open the log file in Console.
+        a log file.
 
-        :returns: an initialised logger
-        :rtype: `~logging.Logger` instance
+        Use :meth:`open_log` to open the log file in Console.
+
+        :returns: an initialised :class:`~logging.Logger`
 
         """
 
@@ -1237,7 +1254,7 @@ class Workflow(object):
         # Initialise new logger and optionally handlers
         logger = logging.getLogger('workflow')
 
-        if not logger.handlers:  # Only add one set of handlers
+        if not len(logger.handlers):  # Only add one set of handlers
             logfile = logging.handlers.RotatingFileHandler(
                 self.logfile,
                 maxBytes=1024*1024,
@@ -1289,10 +1306,16 @@ class Workflow(object):
     def settings(self):
         """Return a dictionary subclass that saves itself when changed.
 
-        :returns: :class:`Settings` instance initialised from the data
-            in JSON file at :attr:`settings_path` or if that doesn't exist,
-            with the ``default_settings`` ``dict`` passed to :class:`Workflow`.
-        :rtype: :class:`Settings` instance
+        See :ref:`manual-settings` in the :ref:`user-manual` for more
+        information on how to use :attr:`settings` and **important
+        limitations** on what it can do.
+
+        :returns: :class:`~workflow.workflow.Settings` instance
+            initialised from the data in JSON file at
+            :attr:`settings_path` or if that doesn't exist, with the
+            ``default_settings`` :class:`dict` passed to
+            :class:`Workflow` on instantiation.
+        :rtype: :class:`~workflow.workflow.Settings` instance
 
         """
 
@@ -1378,8 +1401,7 @@ class Workflow(object):
         :class:`SerializerManager` at `~workflow.workflow.manager`,
         otherwise a :class:`ValueError` will be raised.
 
-        :param serializer_name: Name of default serializer to use.
-        :type serializer_name:
+        :param serializer_name: Name of serializer to use by default.
 
         """
 
@@ -1395,12 +1417,11 @@ class Workflow(object):
 
     def stored_data(self, name):
         """Retrieve data from data directory. Returns ``None`` if there
-        is no data stored.
+        are no data stored.
 
         .. versionadded:: 1.8
 
         :param name: name of datastore
-        :type name: ``unicode``
 
         """
 
@@ -1419,10 +1440,10 @@ class Workflow(object):
             raise ValueError(
                 'Unknown serializer `{}`. Register a corresponding serializer '
                 'with `manager.register()` to load this data.'.format(
-                serializer_name))
+                    serializer_name))
 
         self.logger.debug('Data `{}` stored in `{}` format'.format(
-                          name, serializer_name))
+            name, serializer_name))
 
         filename = '{}.{}'.format(name, serializer_name)
         data_path = self.datafile(filename)
@@ -1449,13 +1470,11 @@ class Workflow(object):
         If ``data`` is ``None``, the datastore will be deleted.
 
         :param name: name of datastore
-        :type name: ``unicode``
-        :param data: object(s) to store
-        :type data: artibrary Python objects. **Note:** some serializers
+        :param data: object(s) to store. **Note:** some serializers
             can only handled certain types of data.
-        :param serializer: name of serializer to use.
-            See :class:`SerializerManager` for more information.
-        :type serializer: ``unicode``
+        :param serializer: name of serializer to use. If no serializer
+            is specified, the default will be used. See
+            :class:`SerializerManager` for more information.
         :returns: data in datastore or ``None``
 
         """
@@ -1504,14 +1523,12 @@ class Workflow(object):
         matter how old.
 
         :param name: name of datastore
-        :type name: ``unicode``
         :param data_func: function to (re-)generate data.
-        :type data_func: `callable`
+        :type data_func: ``callable``
         :param max_age: maximum age of cached data in seconds
-        :type max_age: `int`
+        :type max_age: ``int``
         :returns: cached data, return value of ``data_func`` or ``None``
             if ``data_func`` is not set
-        :rtype: whatever ``data_func`` returns or ``None``
 
         """
 
@@ -1522,10 +1539,10 @@ class Workflow(object):
 
         if (age < max_age or max_age == 0) and os.path.exists(cache_path):
 
-            with open(cache_path, 'rb') as file:
+            with open(cache_path, 'rb') as file_obj:
                 self.logger.debug('Loading cached data from : %s',
                                   cache_path)
-                return serializer.load(file)
+                return serializer.load(file_obj)
 
         if not data_func:
             return None
@@ -1538,12 +1555,12 @@ class Workflow(object):
     def cache_data(self, name, data):
         """Save ``data`` to cache under ``name``.
 
-        If ``data`` is ``None``, the corresponding cache file will be deleted.
+        If ``data`` is ``None``, the corresponding cache file will be
+        deleted.
 
         :param name: name of datastore
-        :type name: ``unicode``
-        :param data: data to store
-        :type data: any object supported by :mod:`pickle`
+        :param data: data to store. This may be any object supported by
+                the cache serializer
 
         """
 
@@ -1557,8 +1574,8 @@ class Workflow(object):
                 self.logger.debug('Deleted cache file : %s', cache_path)
             return
 
-        with open(cache_path, 'wb') as file:
-            serializer.dump(data, file)
+        with open(cache_path, 'wb') as file_obj:
+            serializer.dump(data, file_obj)
 
         self.logger.debug('Cached data saved at : %s', cache_path)
 
@@ -1566,11 +1583,10 @@ class Workflow(object):
         """Is data cached at `name` less than `max_age` old?
 
         :param name: name of datastore
-        :type name: ``unicode``
         :param max_age: maximum age of data in seconds
-        :type max_age: `int`
-        :returns: ``True`` if data is less than `max_age` old, else ``False``
-        :rtype: `Boolean`
+        :type max_age: ``int``
+        :returns: ``True`` if data is less than ``max_age`` old, else
+            ``False``
 
         """
 
@@ -1588,7 +1604,7 @@ class Workflow(object):
         :param name: name of datastore
         :type name: ``unicode``
         :returns: age of datastore in seconds
-        :rtype: `int`
+        :rtype: ``int``
 
         """
 
@@ -1607,12 +1623,18 @@ class Workflow(object):
         ``query`` is case-insensitive. Any item that does not contain the
         entirety of ``query`` is rejected.
 
+        .. warning::
+
+            If ``query`` is an empty string or contains only whitespace,
+            a :class:`ValueError` will be raised.
+
         :param query: query to test items against
         :type query: ``unicode``
         :param items: iterable of items to test
         :type items: ``list`` or ``tuple``
-        :param key: function to get comparison key from ``items``. Must return a
-                    ``unicode`` string. The default simply returns the item.
+        :param key: function to get comparison key from ``items``.
+            Must return a ``unicode`` string. The default simply returns
+            the item.
         :type key: ``callable``
         :param ascending: set to ``True`` to get worst matches first
         :type ascending: ``Boolean``
@@ -1633,7 +1655,7 @@ class Workflow(object):
         :type fold_diacritics: ``Boolean``
         :returns: list of ``items`` matching ``query`` or list of
             ``(item, score, rule)`` `tuples` if ``include_score`` is ``True``.
-            ``rule`` is the ``MATCH_`` rule that matched the item.
+            ``rule`` is the ``MATCH_*`` rule that matched the item.
         :rtype: ``list``
 
         **Matching rules**
@@ -1652,13 +1674,14 @@ class Workflow(object):
         9. :const:`MATCH_ALL` : Combination of all the above.
 
 
-        ``MATCH_ALLCHARS`` is considerably slower than the other tests and
+        :const:`MATCH_ALLCHARS` is considerably slower than the other tests and
         provides much less accurate results.
 
         **Examples:**
 
-        To ignore ``MATCH_ALLCHARS`` (tends to provide the worst matches and
-        is expensive to run), use ``match_on=MATCH_ALL ^ MATCH_ALLCHARS``.
+        To ignore :const:`MATCH_ALLCHARS` (tends to provide the worst
+        matches and is expensive to run), use
+        ``match_on=MATCH_ALL ^ MATCH_ALLCHARS``.
 
         To match only on capitals, use ``match_on=MATCH_CAPITALS``.
 
@@ -1671,8 +1694,8 @@ class Workflow(object):
 
         If ``fold_diacritics`` is ``True`` (the default), and ``query``
         contains only ASCII characters, non-ASCII characters in search keys
-        will be converted to ASCII equivalents (e.g. *ü* -> *u*, *ß* -> *ss*,
-        *é* -> *e*).
+        will be converted to ASCII equivalents (e.g. **ü** -> **u**,
+        **ß** -> **ss**, **é** -> **e**).
 
         See :const:`ASCII_REPLACEMENTS` for all replacements.
 
@@ -1681,8 +1704,14 @@ class Workflow(object):
 
         """
 
+        if not query:
+            raise ValueError('Empty `query`')
+
         # Remove preceding/trailing spaces
         query = query.strip()
+
+        if not query:
+            raise ValueError('`query` contains only whitespace')
 
         # Use user override if there is one
         fold_diacritics = self.settings.get('__workflow_diacritic_folding',
@@ -1690,7 +1719,7 @@ class Workflow(object):
 
         results = []
 
-        for i, item in enumerate(items):
+        for item in items:
             skip = False
             score = 0
             words = [s.strip() for s in query.split(' ')]
@@ -1700,8 +1729,8 @@ class Workflow(object):
             for word in words:
                 if word == '':
                     continue
-                s, r = self._filter_item(value, word, match_on,
-                                         fold_diacritics)
+                s, rule = self._filter_item(value, word, match_on,
+                                            fold_diacritics)
 
                 if not s:  # Skip items that don't match part of the query
                     skip = True
@@ -1715,10 +1744,10 @@ class Workflow(object):
                 # `value` as sort key. This means items with the same score
                 # will be sorted in alphabetical not reverse alphabetical order
                 results.append(((100.0 / score, value.lower(), score),
-                                (item, score, r)))
+                                (item, score, rule)))
 
         # sort on keys, then discard the keys
-        results.sort(reverse=True)
+        results.sort(reverse=ascending)
         results = [t[1] for t in results]
 
         if max_results and len(results) > max_results:
@@ -1741,91 +1770,89 @@ class Workflow(object):
         """
 
         query = query.lower()
-        queryset = set(query)
 
         if not isascii(query):
             fold_diacritics = False
-
-        rule = None
-        score = 0
 
         if fold_diacritics:
             value = self.fold_to_ascii(value)
 
         # pre-filter any items that do not contain all characters
         # of ``query`` to save on running several more expensive tests
-        if not queryset <= set(value.lower()):
+        if not set(query) <= set(value.lower()):
+
             return (0, None)
 
         # item starts with query
-        if (match_on & MATCH_STARTSWITH and
-                value.lower().startswith(query)):
+        if match_on & MATCH_STARTSWITH and value.lower().startswith(query):
             score = 100.0 - (len(value) / len(query))
-            rule = MATCH_STARTSWITH
 
-        if not score and match_on & MATCH_CAPITALS:
-            # query matches capitalised letters in item,
-            # e.g. of = OmniFocus
+            return (score, MATCH_STARTSWITH)
+
+        # query matches capitalised letters in item,
+        # e.g. of = OmniFocus
+        if match_on & MATCH_CAPITALS:
             initials = ''.join([c for c in value if c in INITIALS])
             if initials.lower().startswith(query):
                 score = 100.0 - (len(initials) / len(query))
-                rule = MATCH_CAPITALS
 
-        if not score:
-            if (match_on & MATCH_ATOM or
-                    match_on & MATCH_INITIALS_CONTAIN or
-                    match_on & MATCH_INITIALS_STARTSWITH):
-                # split the item into "atoms", i.e. words separated by
-                # spaces or other non-word characters
-                atoms = [s.lower() for s in split_on_delimiters(value)]
-                # print('atoms : %s  -->  %s' % (value, atoms))
-                # initials of the atoms
-                initials = ''.join([s[0] for s in atoms if s])
+                return (score, MATCH_CAPITALS)
 
-            if match_on & MATCH_ATOM:
-                # is `query` one of the atoms in item?
-                # similar to substring, but scores more highly, as it's
-                # a word within the item
-                if query in atoms:
-                    score = 100.0 - (len(value) / len(query))
-                    rule = MATCH_ATOM
+        # split the item into "atoms", i.e. words separated by
+        # spaces or other non-word characters
+        if (match_on & MATCH_ATOM or
+                match_on & MATCH_INITIALS_CONTAIN or
+                match_on & MATCH_INITIALS_STARTSWITH):
+            atoms = [s.lower() for s in split_on_delimiters(value)]
+            # print('atoms : %s  -->  %s' % (value, atoms))
+            # initials of the atoms
+            initials = ''.join([s[0] for s in atoms if s])
 
-        if not score:
-            # `query` matches start (or all) of the initials of the
-            # atoms, e.g. ``himym`` matches "How I Met Your Mother"
-            # *and* "how i met your mother" (the ``capitals`` rule only
-            # matches the former)
-            if (match_on & MATCH_INITIALS_STARTSWITH and
-                    initials.startswith(query)):
-                score = 100.0 - (len(initials) / len(query))
-                rule = MATCH_INITIALS_STARTSWITH
+        if match_on & MATCH_ATOM:
+            # is `query` one of the atoms in item?
+            # similar to substring, but scores more highly, as it's
+            # a word within the item
+            if query in atoms:
+                score = 100.0 - (len(value) / len(query))
 
-            # `query` is a substring of initials, e.g. ``doh`` matches
-            # "The Dukes of Hazzard"
-            elif (match_on & MATCH_INITIALS_CONTAIN and
-                    query in initials):
-                score = 95.0 - (len(initials) / len(query))
-                rule = MATCH_INITIALS_CONTAIN
+                return (score, MATCH_ATOM)
 
-        if not score:
-            # `query` is a substring of item
-            if match_on & MATCH_SUBSTRING and query in value.lower():
-                    score = 90.0 - (len(value) / len(query))
-                    rule = MATCH_SUBSTRING
+        # `query` matches start (or all) of the initials of the
+        # atoms, e.g. ``himym`` matches "How I Met Your Mother"
+        # *and* "how i met your mother" (the ``capitals`` rule only
+        # matches the former)
+        if (match_on & MATCH_INITIALS_STARTSWITH and
+                initials.startswith(query)):
+            score = 100.0 - (len(initials) / len(query))
 
-        if not score:
-            # finally, assign a score based on how close together the
-            # characters in `query` are in item.
-            if match_on & MATCH_ALLCHARS:
-                search = self._search_for_query(query)
-                match = search(value)
-                if match:
-                    score = 100.0 / ((1 + match.start()) *
-                                     (match.end() - match.start() + 1))
-                    rule = MATCH_ALLCHARS
+            return (score, MATCH_INITIALS_STARTSWITH)
 
-        if score > 0:
-            return (score, rule)
+        # `query` is a substring of initials, e.g. ``doh`` matches
+        # "The Dukes of Hazzard"
+        elif (match_on & MATCH_INITIALS_CONTAIN and
+                query in initials):
+            score = 95.0 - (len(initials) / len(query))
+
+            return (score, MATCH_INITIALS_CONTAIN)
+
+        # `query` is a substring of item
+        if match_on & MATCH_SUBSTRING and query in value.lower():
+            score = 90.0 - (len(value) / len(query))
+
+            return (score, MATCH_SUBSTRING)
+
+        # finally, assign a score based on how close together the
+        # characters in `query` are in item.
+        if match_on & MATCH_ALLCHARS:
+            search = self._search_for_query(query)
+            match = search(value)
+            if match:
+                score = 100.0 / ((1 + match.start()) *
+                                 (match.end() - match.start() + 1))
+
+                return (score, MATCH_ALLCHARS)
+
+        # Nothing matched
         return (0, None)
 
     def _search_for_query(self, query):
@@ -1844,17 +1871,20 @@ class Workflow(object):
         return search
 
     def run(self, func):
-        """Call `func` to run your workflow
+        """Call ``func`` to run your workflow
 
-        `func` will be called with `Workflow` instance as first argument.
-        `func` should be the main entry point to your workflow.
+        :param func: Callable to call with ``self`` (i.e. the :class:`Workflow`
+            instance) as first argument.
+
+        ``func`` will be called with :class:`Workflow` instance as first argument.
+        ``func`` should be the main entry point to your workflow.
 
         Any exceptions raised will be logged and an error message will be
         output to Alfred.
 
-        :param func: Callable to call with `self` as first argument.
-
         """
+
+        start = time.time()
 
         try:
             func(self)
@@ -1872,6 +1902,9 @@ class Workflow(object):
                               icon=ICON_ERROR)
                 self.send_feedback()
             return 1
+        finally:
+            self.logger.debug('Workflow finished in {:0.3f} seconds.'.format(
+                              time.time() - start))
         return 0
 
     # Alfred feedback methods ------------------------------------------
@@ -1895,7 +1928,7 @@ class Workflow(object):
         :param autocomplete: Text expanded in Alfred when item is TABbed
         :type autocomplete: ``unicode``
         :param valid: Whether or not item can be actioned
-        :type valid: `Boolean`
+        :type valid: ``Boolean``
         :param uid: Used by Alfred to remember/sort items
         :type uid: ``unicode``
         :param icon: Filename of icon to use
@@ -1921,7 +1954,20 @@ class Workflow(object):
         :returns: :class:`Item` instance
 
         See the :ref:`script-filter-results` section of the documentation
-        for more information.
+        for a detailed description of what the various parameters do and how
+        they interact with one another.
+
+        See :ref:`icons` for a list of the supported system icons.
+
+        .. note::
+
+            Although this method returns an :class:`Item` instance, you don't
+            need to hold onto it or worry about it. All generated :class:`Item`
+            instances are also collected internally and sent to Alfred when
+            :meth:`send_feedback` is called.
+
+            The generated :class:`Item` is only returned in case you want to
+            edit it or do something with it other than send it to Alfred.
 
         """
 
@@ -1944,33 +1990,101 @@ class Workflow(object):
     # Updating methods
     ####################################################################
 
+    @property
+    def update_available(self):
+        """Is an update available?
+
+        .. versionadded:: 1.9
+
+        See :ref:`manual-updates` in the :ref:`user-manual` for detailed
+        information on how to enable your workflow to update itself.
+
+        :returns: ``True`` if an update is available, else ``False``
+
+        """
+
+        update_data = self.cached_data('__workflow_update_status', max_age=0)
+
+        if not update_data or not update_data.get('available'):
+            return False
+
+        return update_data['available']
+
     def check_update(self, force=False):
-        frequency = self._update_config.get('frequency', DEFAULT_FREQUENCY)
-        if (force or
-                not self.cached_data_fresh(
-                    '__workflow_update_available', frequency * 86400)):
-            github_slug = self._update_config['github_slug']
-            version = self._update_config['version']
+        """Call update script if it's time to check for a new release
+
+        .. versionadded:: 1.9
+
+        The update script will be run in the background, so it won't
+        interfere in the execution of your workflow.
+
+        See :ref:`manual-updates` in the :ref:`user-manual` for detailed
+        information on how to enable your workflow to update itself.
+
+        :param force: Force update check
+        :type force: ``Boolean``
+
+        """
+
+        frequency = self._update_settings.get('frequency',
+                                              DEFAULT_UPDATE_FREQUENCY)
+
+        # Check for new version if it's time
+        if (force or not self.cached_data_fresh(
+                '__workflow_update_status', frequency * 86400)):
+
+            github_slug = self._update_settings['github_slug']
+            version = self._update_settings['version']
+
             from background import run_in_background
-            cmd = ['/usr/bin/python', self.workflowfile('workflow/update.py'),
-                    github_slug, version]
-            run_in_background('__update', cmd)
+
+            # update.py is adjacent to this file
+            update_script = os.path.join(os.path.dirname(__file__),
+                                         b'update.py')
+
+            cmd = ['/usr/bin/python', update_script, 'check', github_slug,
+                   version]
+
+            self.logger.info('Checking for update ...')
+
+            run_in_background('__workflow_update_check', cmd)
+
+        else:
+            self.logger.debug('Update check not due')
 
     def start_update(self):
+        """Check for update and download and install new workflow file
+
+        .. versionadded:: 1.9
+
+        See :ref:`manual-updates` in the :ref:`user-manual` for detailed
+        information on how to enable your workflow to update itself.
+
+        :returns: ``True`` if an update is available and will be
+            installed, else ``False``
+
+        """
+
         import update
-        github_slug = self._update_config['github_slug']
-        version = self._update_config['version']
-        if not update._check_update(github_slug, version):
+
+        github_slug = self._update_settings['github_slug']
+        version = self._update_settings['version']
+
+        if not update.check_update(github_slug, version):
             return False
-        update_data = self.cached_data('__workflow_update_available')
-        if (update_data is None or
-            'download_url' not in update_data):
-            return False   # pragma: no cover
-        local_file = update._download_workflow(update_data['download_url'])
-        subprocess.call(['open', local_file])
-        self.logger.debug('Update initiated')
-        update_data['available'] = False
-        self.cache_data('__workflow_update_available', update_data)
+
+        from background import run_in_background
+
+        # update.py is adjacent to this file
+        update_script = os.path.join(os.path.dirname(__file__),
+                                     b'update.py')
+
+        cmd = ['/usr/bin/python', update_script, 'install', github_slug,
+               version]
+
+        self.logger.debug('Downloading update ...')
+        run_in_background('__workflow_update_install', cmd)
+
         return True
 
     ####################################################################
@@ -1980,38 +2094,41 @@ class Workflow(object):
     def save_password(self, account, password, service=None):
         """Save account credentials.
 
-        If the account exists, the old password will first be deleted (Keychain
-        throws an error otherwise).
+        If the account exists, the old password will first be deleted
+        (Keychain throws an error otherwise).
 
-        If something goes wrong, a `KeychainError` exception will be raised.
+        If something goes wrong, a :class:`KeychainError` exception will
+        be raised.
 
         :param account: name of the account the password is for, e.g.
             "Pinboard"
         :type account: ``unicode``
         :param password: the password to secure
         :type password: ``unicode``
-        :param service: Name of the service. By default, this is the workflow's
-                        bundle ID
+        :param service: Name of the service. By default, this is the
+            workflow's bundle ID
         :type service: ``unicode``
 
         """
         if not service:
             service = self.bundleid
+
         try:
-            retcode, output = self._call_security('add-generic-password',
-                                                  service, account,
-                                                  '-w', password)
+            self._call_security('add-generic-password', service, account,
+                                '-w', password)
             self.logger.debug('Saved password : %s:%s', service, account)
+
         except PasswordExists:
             self.logger.debug('Password exists : %s:%s', service, account)
             current_password = self.get_password(account, service)
+
             if current_password == password:
                 self.logger.debug('Password unchanged')
+
             else:
                 self.delete_password(account, service)
-                retcode, output = self._call_security('add-generic-password',
-                                                      service, account,
-                                                      '-w', password)
+                self._call_security('add-generic-password', service,
+                                    account, '-w', password)
                 self.logger.debug('save_password : %s:%s', service, account)
 
     def get_password(self, account, service=None):
@@ -2031,9 +2148,11 @@ class Workflow(object):
 
         if not service:
             service = self.bundleid
-        retcode, password = self._call_security('find-generic-password',
-                                                service, account, '-w')
-        self.logger.debug('get_password : %s:%s', service, account)
+
+        password = self._call_security('find-generic-password', service,
+                                       account, '-w')
+        self.logger.debug('Got password : %s:%s', service, account)
+
         return password
 
     def delete_password(self, account, service=None):
@@ -2051,54 +2170,63 @@ class Workflow(object):
 
         if not service:
             service = self.bundleid
-        retcode, output = self._call_security('delete-generic-password',
-                                              service, account)
-        self.logger.debug('delete_password : %s:%s', service, account)
+
+        self._call_security('delete-generic-password', service, account)
+
+        self.logger.debug('Deleted password : %s:%s', service, account)
 
     ####################################################################
     # Methods for workflow:* magic args
     ####################################################################
 
     def clear_cache(self):
-        """Delete all files in workflow cache directory."""
+        """Delete all files in workflow's :attr:`cachedir`."""
         self._delete_directory_contents(self.cachedir)
 
     def clear_data(self):
-        """Delete all files in workflow data directory."""
+        """Delete all files in workflow's :attr:`datadir`."""
         self._delete_directory_contents(self.datadir)
 
     def clear_settings(self):
-        """Delete settings file."""
+        """Delete workflow's :attr:`settings_path`."""
         if os.path.exists(self.settings_path):
             os.unlink(self.settings_path)
             self.logger.debug('Deleted : %r', self.settings_path)
 
     def reset(self):
-        """Delete settings, cache and data"""
+        """Delete :attr:`settings <settings_path>`, :attr:`cache <cachedir>`
+        and :attr:`data <datadir>`
+
+        """
+
         self.clear_cache()
         self.clear_data()
         self.clear_settings()
 
     def open_log(self):
-        """Open log file in standard application (usually Console.app)."""
-        subprocess.call(['open', self.logfile])  # pragma: no cover
+        """Open workflows :attr:`logfile` in standard
+        application (usually Console.app).
+
+        """
+
+        subprocess.call(['open', self.logfile])
 
     def open_cachedir(self):
-        """Open the workflow cache directory in Finder."""
-        subprocess.call(['open', self.cachedir])  # pragma: no cover
+        """Open the workflow's :attr:`cachedir` in Finder."""
+        subprocess.call(['open', self.cachedir])
 
     def open_datadir(self):
-        """Open the workflow data directory in Finder."""
-        subprocess.call(['open', self.datadir])  # pragma: no cover
+        """Open the workflow's :attr:`datadir` in Finder."""
+        subprocess.call(['open', self.datadir])
 
     def open_workflowdir(self):
-        """Open the workflow directory in Finder."""
-        subprocess.call(['open', self.workflowdir])  # pragma: no cover
+        """Open the workflow's :attr:`directory <workflowdir` in Finder."""
+        subprocess.call(['open', self.workflowdir])
 
     def open_terminal(self):
-        """Open a Terminal window at workflow directory."""
+        """Open a Terminal window at workflow's :attr:`directory <workflowdir`."""
         subprocess.call(['open', '-a', 'Terminal',
-                        self.workflowdir])  # pragma: no cover
+                        self.workflowdir])
 
     ####################################################################
     # Helper methods
@@ -2140,10 +2268,11 @@ class Workflow(object):
         return unicodedata.normalize(normalization, text)
 
     def fold_to_ascii(self, text):
-        """
+        """Convert non-ASCII characters to closest ASCII equivalent.
+
         .. versionadded:: 1.3
 
-        Convert non-ASCII characters to closest ASCII equivalent.
+        .. note:: This only works for a subset of European languages.
 
         :param text: text to convert
         :type text: ``unicode``
@@ -2234,4 +2363,4 @@ class Workflow(object):
             err = KeychainError('Unknown Keychain error : %s' % output)
             err.retcode = retcode
             raise err
-        return (retcode, output)
+        return output
