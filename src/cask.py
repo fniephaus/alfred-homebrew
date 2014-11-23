@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     if WF.update_available:
         WF.add_item("An update is available!",
-                    autocomplete='workflow:update', valid=False)
+                    autocomplete='workflow:update', valid=False, icon='cask.png')
 
     # extract query
     query = WF.args[0] if len(WF.args) else None
@@ -56,30 +56,30 @@ if __name__ == '__main__':
         for formula in get_all_casks(query):
             WF.add_item(
                 formula, "Install", arg='brew cask install %s' %
-                formula, valid=True)
+                formula, valid=True, icon='cask.png')
     elif query and any(query.startswith(x) for x in ['search', 'home']):
         for formula in get_all_casks(query):
             WF.add_item(formula, "Open homepage", arg='brew cask home %s' %
-                        formula, valid=True)
+                        formula, valid=True, icon='cask.png')
     elif query and query.startswith('uninstall'):
         for formula in get_installed_casks(query):
             name = formula.split(' ')[0]
             WF.add_item(formula, "Uninstall", arg='brew cask uninstall %s' %
-                        name, valid=True)
+                        name, valid=True, icon='cask.png')
     elif query and query.startswith('list'):
         for formula in get_installed_casks(query):
             WF.add_item(
-                formula, "Open homepage", arg='brew cask home %s' % formula, valid=True)
+                formula, "Open homepage", arg='brew cask home %s' % formula, valid=True, icon='cask.png')
     elif query and query.startswith('alfred'):
         info = cask_refresh.execute_cask_command('alfred status')
         WF.add_item(info)
         if 'linked' in info:  # make sure it's not an error
             if 'not linked' in info:
                 WF.add_item('Add Caskroom to alfred search paths',
-                            arg='brew cask alfred link', valid=True)
+                            arg='brew cask alfred link', valid=True, icon='cask.png')
             else:
                 WF.add_item('Remove Caskroom from Alfred search paths',
-                            arg='brew cask alfred unlink', valid=True)
+                            arg='brew cask alfred unlink', valid=True, icon='cask.png')
     else:
         # filter actions by query
         if query:
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
         for action in ACTIONS:
             WF.add_item(action['name'], action['description'], uid=action[
-                        'name'], autocomplete=action['autocomplete'], arg=action['arg'], valid=action['valid'])
+                        'name'], autocomplete=action['autocomplete'], arg=action['arg'], valid=action['valid'], icon='cask.png')
 
     WF.send_feedback()
 
