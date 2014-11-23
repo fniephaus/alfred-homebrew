@@ -2,8 +2,6 @@ import subprocess
 
 from workflow import Workflow, PasswordNotFound
 
-from cask_helpers import execute_cask_command
-
 
 def get_all_casks():
     result = execute_cask_command('search')
