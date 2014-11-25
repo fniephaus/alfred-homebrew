@@ -85,12 +85,15 @@ if __name__ == '__main__':
                 WF.add_item(
                     formula, "Open on GitHub", arg=get_open_link_command(formula), valid=True)
         elif query and query.startswith('uninstall'):
-            for formula in get_install_packages(query):
+            for formula in get_installed_packages(query):
+                name = formula.rsplit()[0]
+                WF.logger.debug(formula)
+                WF.logger.debug(name)
                 WF.add_item(formula, "Uninstall", arg='brew uninstall %s' %
                             name, valid=True)
-            filter_installed_packages(query)
         elif query and query.startswith('list'):
-            for formula in get_install_packages(query):
+            for formula in get_installed_packages(query):
+                name = formula.rsplit()[0]
                 WF.add_item(
                     formula, "Open on GitHub", arg=get_open_link_command(name), valid=True)
         elif query and query.startswith('info'):
