@@ -21,6 +21,6 @@ def get_info():
 
 if __name__ == '__main__':
     wf = Workflow()
-    wf.cache_data('brew_all', get_all_packages())
-    wf.cache_data('brew_installed', get_installed_packages())
+    wf.cache_data('brew_all_formulas', get_all_packages())
+    wf.cache_data('brew_installed_formulas', get_installed_packages())
     wf.cache_data('brew_info', get_info())
