@@ -38,7 +38,7 @@
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
-	<string>Homebrew for Alfred</string>
+	<string>Homebrew &amp; Cask for Alfred</string>
 	<key>objects</key>
 	<array>
 		<dict>
