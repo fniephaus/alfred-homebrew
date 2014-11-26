@@ -34,7 +34,7 @@
 	<key>createdby</key>
 	<string>Fabio Niephaus</string>
 	<key>description</key>
-	<string>Control Homebrew with Alfred</string>
+	<string>Control Homebrew &amp; Cask with Alfred</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
