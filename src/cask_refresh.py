@@ -13,7 +13,7 @@ def get_installed_casks():
     return result.splitlines()
 
 
-def execute_cask_command(command=None):
+def execute_cask_command(command):
     if command not in ['search', 'list', 'alfred status']:
         return None
 

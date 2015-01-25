@@ -58,12 +58,25 @@ def brew_not_installed():
     return err != ''
 
 
+def get_icon(name):
+    name = '%s-dark' % name if is_dark() else name
+    return "icons/%s.png" % name
+
+
+def is_dark():
+    return min([int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]) < 128
+
+
 if __name__ == '__main__':
     from brew_actions import ACTIONS
 
     if WF.update_available:
-        WF.add_item("An update is available!",
-                    autocomplete='workflow:update', valid=False)
+        WF.add_item(
+            "An update is available!",
+            autocomplete='workflow:update',
+            valid=False,
+            icon=get_icon("cloud-download")
+        )
 
     if WF.cached_data('brew_not_installed', brew_not_installed, max_age=0):
         WF.add_item('Brew does not seem to be installed!',
@@ -78,40 +91,79 @@ if __name__ == '__main__':
 
         if query and query.startswith('install'):
             for formula in get_all_packages(query):
-                WF.add_item(formula, "Install", arg='brew install %s' %
-                            formula, valid=True)
+                WF.add_item(
+                    formula, "Install",
+                    arg='brew install %s' % formula,
+                    valid=True,
+                    icon=get_icon("package")
+                )
         elif query and query.startswith('search'):
             for formula in get_all_packages(query):
                 WF.add_item(
-                    formula, "Open on GitHub", arg=get_open_link_command(formula), valid=True)
+                    formula, "Open on GitHub",
+                    arg=get_open_link_command(formula),
+                    valid=True,
+                    icon=get_icon("package")
+                )
         elif query and query.startswith('uninstall'):
             for formula in get_installed_packages(query):
                 name = formula.rsplit()[0]
-                WF.logger.debug(formula)
-                WF.logger.debug(name)
-                WF.add_item(formula, "Uninstall", arg='brew uninstall %s' %
-                            name, valid=True)
+                WF.add_item(
+                    formula, "Uninstall",
+                    arg='brew uninstall %s' % name,
+                    valid=True,
+                    icon=get_icon("package")
+                )
         elif query and query.startswith('list'):
             for formula in get_installed_packages(query):
                 name = formula.rsplit()[0]
                 WF.add_item(
-                    formula, "Open on GitHub", arg=get_open_link_command(name), valid=True)
+                    formula, "Open on GitHub",
+                    arg=get_open_link_command(name),
+                    valid=True,
+                    icon=get_icon("package")
+                )
         elif query and query.startswith('info'):
             info = WF.cached_data(
                 'brew_info', brew_refresh.get_info, max_age=3600)
-            WF.add_item(info, autocomplete='')
+            WF.add_item(
+                info,
+                autocomplete='',
+                icon=get_icon("info")
+            )
         else:
             # filter actions by query
             if query:
                 ACTIONS = WF.filter(
                     query, ACTIONS, key=search_key_for_action, match_on=MATCH_SUBSTRING)
 
-            for action in ACTIONS:
-                WF.add_item(action['name'], action['description'], uid=action[
-                            'name'], autocomplete=action['autocomplete'], arg=action['arg'], valid=action['valid'])
+            if len(ACTIONS) > 0:
+                for action in ACTIONS:
+                    WF.add_item(
+                        action['name'], action['description'],
+                        uid=action['name'],
+                        autocomplete=action['autocomplete'],
+                        arg=action['arg'],
+                        valid=action['valid'],
+                        icon=get_icon("chevron-right")
+                    )
+            else:
+                WF.add_item(
+                    "No action found for '%s'" % query,
+                    autocomplete="",
+                    icon=get_icon("info")
+                )
+
+        if len(WF._items) == 0:
+            WF.add_item(
+                "No formula found for '%s'" % query[query.find(" ") + 1:],
+                autocomplete="%s " % query[:query.find(" ")],
+                icon=get_icon("info")
+            )
 
     WF.send_feedback()
 
     # refresh cache
-    cmd = ['/usr/bin/python', WF.workflowfile('brew_refresh.py')]
+    cmd = ['/usr/bin/python',
+    WF.workflowfile('brew_refresh.py')]
     run_in_background('brew_refresh', cmd)
