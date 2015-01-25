@@ -49,7 +49,7 @@ def get_installed_packages(query):
 
 
 def get_open_link_command(formula):
-    return 'open %s/%s.rb && exit' % (FORMULA_URL, name)
+    return 'open %s/%s.rb && exit' % (FORMULA_URL, formula)
 
 
 def brew_not_installed():
