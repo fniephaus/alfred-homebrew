@@ -92,7 +92,7 @@ if __name__ == '__main__':
         if query and query.startswith('install'):
             for formula in get_all_packages(query):
                 WF.add_item(
-                    formula, "Install",
+                    formula, "Install formula",
                     arg='brew install %s' % formula,
                     valid=True,
                     icon=get_icon("package")
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         elif query and query.startswith('search'):
             for formula in get_all_packages(query):
                 WF.add_item(
-                    formula, "Open on GitHub",
+                    formula, "Open formula on GitHub",
                     arg=get_open_link_command(formula),
                     valid=True,
                     icon=get_icon("package")
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             for formula in get_installed_packages(query):
                 name = formula.rsplit()[0]
                 WF.add_item(
-                    formula, "Uninstall",
+                    formula, "Uninstall formula",
                     arg='brew uninstall %s' % name,
                     valid=True,
                     icon=get_icon("package")
@@ -118,7 +118,7 @@ if __name__ == '__main__':
             for formula in get_installed_packages(query):
                 name = formula.rsplit()[0]
                 WF.add_item(
-                    formula, "Open on GitHub",
+                    formula, "Open formula on GitHub",
                     arg=get_open_link_command(name),
                     valid=True,
                     icon=get_icon("package")

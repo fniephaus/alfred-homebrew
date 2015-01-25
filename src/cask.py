@@ -82,7 +82,7 @@ if __name__ == '__main__':
         if query and query.startswith('install'):
             for formula in get_all_casks(query):
                 WF.add_item(
-                    formula, "Install",
+                    formula, "Install cask",
                     arg='brew cask install %s' % formula,
                     valid=True,
                     icon=get_icon("package")
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         elif query and query.startswith('uninstall'):
             for formula in get_installed_casks(query):
                 name = formula.split(' ')[0]
-                WF.add_item(formula, "Uninstall",
+                WF.add_item(formula, "Uninstall cask",
                     arg='brew cask uninstall %s' % name,
                     valid=True,
                     icon=get_icon("package")
