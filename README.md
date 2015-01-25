@@ -15,4 +15,4 @@ Easily control [Homebrew](http://brew.sh) and [Cask](http://caskroom.io/) with [
 
 ## Credits
 
-This workflow uses [alfred-workflow](https://github.com/deanishe/alfred-workflow).
+This workflow uses [Github Octicons](https://github.com/github/octicons/) and [alfred-workflow](https://github.com/deanishe/alfred-workflow).
