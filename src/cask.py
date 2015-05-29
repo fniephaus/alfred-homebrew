@@ -15,6 +15,18 @@ WF = Workflow(update_settings={
     'version': open(os.path.join(os.path.dirname(__file__), 'version')).read(),
 })
 
+DEFAULT_SETTINGS = {
+    'HOMEBREW_CASK_OPTS': {
+        'appdir': '/Applications',
+        'caskroom': '/usr/local/Caskroom'
+    }
+}
+
+
+def edit_config():
+    """Open `settings.json` in default editor"""
+    subprocess.call(['open', WF.settings_path])
+
 
 def search_key_for_action(action):
     elements = []
@@ -80,7 +92,7 @@ if __name__ == '__main__':
         query = WF.args[0] if len(WF.args) else None
 
         if query and query.startswith('install'):
-            for formula in get_all_casks(query):
+            for formula in get_installed_casks(query):
                 WF.add_item(
                     formula, "Install cask",
                     arg='brew cask install %s' % formula,
@@ -127,6 +139,13 @@ if __name__ == '__main__':
                         valid=True,
                         icon=get_icon("chevron-right")
                     )
+        elif query and query.startswith('settings'):
+            # Create default settings
+            if not os.path.exists(WF.settings_path) or not WF.settings.get('HOMEBREW_CASK_OPTS', None):
+                for key in DEFAULT_SETTINGS:
+                    WF.settings[key] = DEFAULT_SETTINGS[key]
+            # Edit settings
+            edit_config()
         else:
             # filter actions by query
             if query:

@@ -56,6 +56,13 @@ ACTIONS = [
         'valid': False
     },
     {
+        'name': 'settings',
+        'description': 'Open `settings.json` in your default editor.',
+        'autocomplete': 'settings',
+        'arg': '',
+        'valid': False
+    },
+    {
         'name': 'Clear workflow cache',
         'description': '',
         'autocomplete': 'workflow:delcache',
