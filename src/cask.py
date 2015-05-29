@@ -92,7 +92,7 @@ if __name__ == '__main__':
         query = WF.args[0] if len(WF.args) else None
 
         if query and query.startswith('install'):
-            for formula in get_installed_casks(query):
+            for formula in get_all_casks(query):
                 WF.add_item(
                     formula, "Install cask",
                     arg='brew cask install %s' % formula,
