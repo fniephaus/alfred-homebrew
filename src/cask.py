@@ -17,8 +17,8 @@ WF = Workflow(update_settings={
 
 DEFAULT_SETTINGS = {
     'HOMEBREW_CASK_OPTS': {
-        'appdir': '~/Applications',
-        'caskroom': '/opt/homebrew-cask/Caskroom'
+        'appdir': '/Applications',
+        'caskroom': '/usr/local/Caskroom'
     }
 }
 
