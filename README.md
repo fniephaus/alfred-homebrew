@@ -13,6 +13,15 @@ Easily control [Homebrew](http://brew.sh) and [Cask](http://caskroom.io/) with [
 - Background cache refresh
 
 
+## Configuration
+
+If you installed homebrew-cask and you can changed where the applications will be installed by adding a line like this to your `.bash_profile` or `.zshenv`:
+
+```shell
+# Specify your defaults in this environment variable
+export HOMEBREW_CASK_OPTS="--appdir=/Applications --caskroom=/usr/local/Caskroom"
+```
+
 ## Credits
 
 This workflow uses [Github Octicons](https://github.com/github/octicons/) and [alfred-workflow](https://github.com/deanishe/alfred-workflow).
