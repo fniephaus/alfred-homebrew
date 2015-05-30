@@ -56,9 +56,9 @@ ACTIONS = [
         'valid': False
     },
     {
-        'name': 'settings',
+        'name': 'config',
         'description': 'Open `settings.json` in your default editor.',
-        'autocomplete': 'settings',
+        'autocomplete': 'config',
         'arg': '',
         'valid': False
     },

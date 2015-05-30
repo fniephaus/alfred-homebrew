@@ -29,7 +29,7 @@ def execute_cask_command(command):
             cmd = 'export HOMEBREW_CASK_OPTS="--appdir=%s --caskroom=%s"' % (opts['appdir'], opts['caskroom'])
             commands.append(cmd)
         else:
-            return 'Please make sure your settings contain `appdir` and `caskroom` keys'
+            err = 'Config'
 
     commands.append('/usr/local/bin/brew cask %s' % command)
 
@@ -38,7 +38,7 @@ def execute_cask_command(command):
         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
     if not opts and 'sudo' in result:
-        return 'It seems you need to edit your settings to make this workflow work'
+        err = 'Config'
 
     if err != '':
         return err

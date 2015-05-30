@@ -60,6 +60,10 @@ def cask_not_installed():
     return cask_refresh.execute_cask_command('search').startswith('Error')
 
 
+def cask_not_configured():
+    return cask_refresh.execute_cask_command('search').startswith('Config')
+
+
 def get_icon(name):
     name = '%s-dark' % name if is_dark() else name
     return "icons/%s.png" % name
@@ -86,7 +90,17 @@ if __name__ == '__main__':
         WF.add_item('I trust this workflow',
                     'Hit enter to install cask...', arg='brew install caskroom/cask/brew-cask', valid=True)
         # delete cached file
-        WF.cache_data('cask_not_installed', None)
+        WF.cache_data('cask_not_configured', None)
+    elif WF.cached_data('cask_not_configured', cask_not_configured, max_age=0):
+        WF.add_item('Cask does not seem to be configured!',
+                    'Hit enter to see what you need to do...',
+                    arg='open https://github.com/fniephaus/alfred-homebrew && exit', valid=True)
+        WF.add_item(ACTIONS[8]['name'], ACTIONS[8]['description'],
+                    uid=ACTIONS[8]['name'], autocomplete=ACTIONS[8]['autocomplete'],
+                    arg=ACTIONS[8]['arg'], valid=ACTIONS[8]['valid'],
+                    icon=get_icon("chevron-right"))
+        # delete cached file
+        WF.cache_data('cask_not_configured', None)
     else:
         # extract query
         query = WF.args[0] if len(WF.args) else None
@@ -101,7 +115,8 @@ if __name__ == '__main__':
                 )
         elif query and any(query.startswith(x) for x in ['search', 'home']):
             for formula in get_all_casks(query):
-                WF.add_item(formula, "Open homepage",
+                WF.add_item(
+                    formula, "Open homepage",
                     arg='brew cask home %s' % formula,
                     valid=True,
                     icon=get_icon("package")
@@ -139,7 +154,7 @@ if __name__ == '__main__':
                         valid=True,
                         icon=get_icon("chevron-right")
                     )
-        elif query and query.startswith('settings'):
+        elif query and query.startswith('config'):
             # Create default settings
             if not os.path.exists(WF.settings_path) or not WF.settings.get('HOMEBREW_CASK_OPTS', None):
                 for key in DEFAULT_SETTINGS:
