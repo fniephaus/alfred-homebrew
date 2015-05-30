@@ -124,7 +124,8 @@ if __name__ == '__main__':
         elif query and query.startswith('uninstall'):
             for formula in get_installed_casks(query):
                 name = formula.split(' ')[0]
-                WF.add_item(formula, "Uninstall cask",
+                WF.add_item(
+                    formula, "Uninstall cask",
                     arg='brew cask uninstall %s' % name,
                     valid=True,
                     icon=get_icon("package")
@@ -143,13 +144,15 @@ if __name__ == '__main__':
                 WF.add_item(text, icon=get_icon("info"))
             if 'linked' in info:  # make sure it's not an error
                 if 'not linked' in info:
-                    WF.add_item('Add Caskroom to alfred search paths',
+                    WF.add_item(
+                        'Add Caskroom to alfred search paths',
                         arg='brew cask alfred link',
                         valid=True,
                         icon=get_icon("chevron-right")
                     )
                 else:
-                    WF.add_item('Remove Caskroom from Alfred search paths',
+                    WF.add_item(
+                        'Remove Caskroom from Alfred search paths',
                         arg='brew cask alfred unlink',
                         valid=True,
                         icon=get_icon("chevron-right")
