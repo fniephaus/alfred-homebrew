@@ -37,7 +37,7 @@ def execute_cask_command(command):
         ' && '.join(commands), shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
-    if not opts and 'sudo' in result:
+    if 'sudo' in result:
         err = 'Config'
 
     if err != '':

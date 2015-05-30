@@ -17,14 +17,19 @@ WF = Workflow(update_settings={
 
 DEFAULT_SETTINGS = {
     'HOMEBREW_CASK_OPTS': {
-        'appdir': '/Applications',
-        'caskroom': '/usr/local/Caskroom'
+        'appdir': '~/Applications',
+        'caskroom': '/opt/homebrew-cask/Caskroom'
     }
 }
 
 
+def default_settings():
+    if not os.path.exists(WF.settings_path) or not WF.settings.get('HOMEBREW_CASK_OPTS', None):
+        for key in DEFAULT_SETTINGS:
+            WF.settings[key] = DEFAULT_SETTINGS[key]
+
+
 def edit_config():
-    """Open `settings.json` in default editor"""
     subprocess.call(['open', WF.settings_path])
 
 
@@ -69,6 +74,10 @@ def get_icon(name):
     return "icons/%s.png" % name
 
 
+def get_cask_icon():
+    return "BE21043D-F355-45C6-8CF0-80F5DAD8BA5B.png"
+
+
 def is_dark():
     return min([int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]) < 128
 
@@ -89,22 +98,25 @@ if __name__ == '__main__':
             'Cask does not seem to be installed!',
             'Hit enter to see what you need to do...',
             arg='open http://caskroom.io/ && exit',
-            valid=True
+            valid=True,
+            icon=get_cask_icon()
         )
         WF.add_item(
             'I trust this workflow',
             'Hit enter to install cask...',
             arg='brew install caskroom/cask/brew-cask',
-            valid=True
+            valid=True,
+            icon=get_cask_icon()
         )
         # delete cached file
-        WF.cache_data('cask_not_configured', None)
+        WF.cache_data('cask_not_installed', None)
     elif WF.cached_data('cask_not_configured', cask_not_configured, max_age=0):
         WF.add_item(
-            'Cask does not seem to be configured!',
+            'Cask does not seem to be properly configured!',
             'Hit enter to see what you need to do...',
             arg='open https://github.com/fniephaus/alfred-homebrew && exit',
-            valid=True
+            valid=True,
+            icon=get_cask_icon()
         )
         WF.add_item(
             ACTIONS[8]['name'], ACTIONS[8]['description'],
@@ -112,8 +124,16 @@ if __name__ == '__main__':
             autocomplete=ACTIONS[8]['autocomplete'],
             arg=ACTIONS[8]['arg'],
             valid=ACTIONS[8]['valid'],
-            icon=get_icon("chevron-right")
+            icon=get_icon("chevron-right"),
         )
+
+        query = WF.args[0] if len(WF.args) else None
+        if query and query.startswith('config'):
+            # Create default settings
+            default_settings()
+            # Edit settings
+            edit_config()
+
         # delete cached file
         WF.cache_data('cask_not_configured', None)
     else:
@@ -174,9 +194,7 @@ if __name__ == '__main__':
                     )
         elif query and query.startswith('config'):
             # Create default settings
-            if not os.path.exists(WF.settings_path) or not WF.settings.get('HOMEBREW_CASK_OPTS', None):
-                for key in DEFAULT_SETTINGS:
-                    WF.settings[key] = DEFAULT_SETTINGS[key]
+            default_settings()
             # Edit settings
             edit_config()
         else:
