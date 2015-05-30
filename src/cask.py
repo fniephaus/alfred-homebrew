@@ -85,20 +85,35 @@ if __name__ == '__main__':
         )
 
     if WF.cached_data('cask_not_installed', cask_not_installed, max_age=0):
-        WF.add_item('Cask does not seem to be installed!',
-                    'Hit enter to see what you need to do...', arg='open http://caskroom.io/ && exit', valid=True)
-        WF.add_item('I trust this workflow',
-                    'Hit enter to install cask...', arg='brew install caskroom/cask/brew-cask', valid=True)
+        WF.add_item(
+            'Cask does not seem to be installed!',
+            'Hit enter to see what you need to do...',
+            arg='open http://caskroom.io/ && exit',
+            valid=True
+        )
+        WF.add_item(
+            'I trust this workflow',
+            'Hit enter to install cask...',
+            arg='brew install caskroom/cask/brew-cask',
+            valid=True
+        )
         # delete cached file
         WF.cache_data('cask_not_configured', None)
     elif WF.cached_data('cask_not_configured', cask_not_configured, max_age=0):
-        WF.add_item('Cask does not seem to be configured!',
-                    'Hit enter to see what you need to do...',
-                    arg='open https://github.com/fniephaus/alfred-homebrew && exit', valid=True)
-        WF.add_item(ACTIONS[8]['name'], ACTIONS[8]['description'],
-                    uid=ACTIONS[8]['name'], autocomplete=ACTIONS[8]['autocomplete'],
-                    arg=ACTIONS[8]['arg'], valid=ACTIONS[8]['valid'],
-                    icon=get_icon("chevron-right"))
+        WF.add_item(
+            'Cask does not seem to be configured!',
+            'Hit enter to see what you need to do...',
+            arg='open https://github.com/fniephaus/alfred-homebrew && exit',
+            valid=True
+        )
+        WF.add_item(
+            ACTIONS[8]['name'], ACTIONS[8]['description'],
+            uid=ACTIONS[8]['name'],
+            autocomplete=ACTIONS[8]['autocomplete'],
+            arg=ACTIONS[8]['arg'],
+            valid=ACTIONS[8]['valid'],
+            icon=get_icon("chevron-right")
+        )
         # delete cached file
         WF.cache_data('cask_not_configured', None)
     else:

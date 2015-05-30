@@ -79,10 +79,18 @@ if __name__ == '__main__':
         )
 
     if WF.cached_data('brew_not_installed', brew_not_installed, max_age=0):
-        WF.add_item('Brew does not seem to be installed!',
-                    'Hit enter to see what you need to do...', arg='open http://brew.sh/#install && exit', valid=True)
-        WF.add_item('I trust this workflow',
-                    'Hit enter to install brew...', arg='ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"', valid=True)
+        WF.add_item(
+            'Brew does not seem to be installed!',
+            'Hit enter to see what you need to do...',
+            arg='open http://brew.sh/#install && exit',
+            valid=True
+        )
+        WF.add_item(
+            'I trust this workflow',
+            'Hit enter to install brew...',
+            arg='ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"',
+            valid=True
+        )
         # delete cached file
         WF.cache_data('brew_not_installed', None)
     else:
@@ -164,6 +172,5 @@ if __name__ == '__main__':
     WF.send_feedback()
 
     # refresh cache
-    cmd = ['/usr/bin/python',
-    WF.workflowfile('brew_refresh.py')]
+    cmd = ['/usr/bin/python', WF.workflowfile('brew_refresh.py')]
     run_in_background('brew_refresh', cmd)
