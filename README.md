@@ -24,7 +24,7 @@ export HOMEBREW_CASK_OPTS="--appdir=/Applications --caskroom=/usr/local/Caskroom
 
 You need to update workflow's settings accordingly to your configuration.
 
-![Alfred Homebrew Configuration](https://raw.github.com/fniephaus/alfred-homebrew/master/cask.gif)
+![Alfred Homebrew Configuration](https://raw.githubusercontent.com/fniephaus/alfred-homebrew/master/cask-config.png)
 
 ## Credits
 
