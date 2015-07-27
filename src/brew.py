@@ -64,8 +64,8 @@ def get_icon(name):
 
 
 def is_dark():
-    return min([int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]) < 128
-
+    rgb = [int(x) for x in WF.alfred_env['theme_background'][5:-6].split(',')]
+    return (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] ) / 255 < 0.5
 
 if __name__ == '__main__':
     from brew_actions import ACTIONS
