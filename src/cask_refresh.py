@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 from workflow import Workflow, PasswordNotFound
@@ -20,21 +21,19 @@ def execute_cask_command(command):
         return None
 
     # workaround PATH and Caskroom problems
-    commands = ['export PATH=/usr/local/bin:$PATH']
+    os.environ['PATH'] += os.pathsep + '/usr/local/bin'
 
     opts = WF.settings.get('HOMEBREW_CASK_OPTS', None)
 
+    options = ''
     if opts:
         if all(k in opts for k in ('appdir', 'caskroom')):
-            cmd = 'export HOMEBREW_CASK_OPTS="--appdir=%s --caskroom=%s"' % (opts['appdir'], opts['caskroom'])
-            commands.append(cmd)
+            options = '--appdir=%s --caskroom=%s' % (opts['appdir'], opts['caskroom'])
         else:
             err = 'Config'
 
-    commands.append('/usr/local/bin/brew cask %s' % command)
-
     result, err = subprocess.Popen(
-        ' && '.join(commands), shell=True,
+        '/usr/local/bin/brew cask %s %s' % (options, command), shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
     if 'sudo' in result:
