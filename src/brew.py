@@ -55,7 +55,7 @@ def get_open_link_command(formula):
 def brew_not_installed():
     _, err = subprocess.Popen(
         ['command', '/usr/local/bin/brew'], stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-    return err != ''
+    return err != '' and not 'Example usage:' in err
 
 
 def get_icon(name):
