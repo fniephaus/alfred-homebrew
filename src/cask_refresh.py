@@ -33,7 +33,7 @@ def execute_cask_command(command):
             err = 'Config'
 
     result, err = subprocess.Popen(
-        '/usr/local/bin/brew cask %s %s' % (options, command), shell=True,
+        '/usr/local/bin/brew cask %s %s' % (command, options), shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
     if 'sudo' in result:
