@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from workflow import Workflow, PasswordNotFound
+from workflow import Workflow
 
 WF = Workflow()
 
@@ -28,7 +28,8 @@ def execute_cask_command(command):
     options = ''
     if opts:
         if all(k in opts for k in ('appdir', 'caskroom')):
-            options = '--appdir=%s --caskroom=%s' % (opts['appdir'], opts['caskroom'])
+            options = '--appdir=%s --caskroom=%s' % (opts['appdir'],
+                                                     opts['caskroom'])
         else:
             err = 'Config'
 

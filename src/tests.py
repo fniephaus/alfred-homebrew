@@ -1,5 +1,6 @@
 import unittest
 import brew
+import helpers
 import brew_refresh
 import cask_refresh
 
@@ -13,13 +14,13 @@ class HomeBrewTestCase(unittest.TestCase):
         self.assertTrue(len(result) == 0)
 
     def test_search_key_for_action(self):
-        result = brew.search_key_for_action({
+        result = helpers.search_key_for_action({
             'name': 'a',
             'description': 'b',
         })
         self.assertEquals(result, u'a b')
 
-    def test_refresh_get_all_packages(self):   
+    def test_refresh_get_all_packages(self):
         result = brew_refresh.get_all_packages()
         self.assertTrue(len(result) > 0)
 
