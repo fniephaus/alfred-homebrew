@@ -18,20 +18,25 @@ up your Python script to best utilise the :class:`Workflow` object.
 from __future__ import print_function, unicode_literals
 
 import binascii
-import os
-import sys
-import string
-import re
-import plistlib
-import subprocess
-import unicodedata
-import shutil
-import json
+from contextlib import contextmanager
 import cPickle
-import pickle
-import time
+from copy import deepcopy
+import errno
+import json
 import logging
 import logging.handlers
+import os
+import pickle
+import plistlib
+import re
+import shutil
+import signal
+import string
+import subprocess
+import sys
+import time
+import unicodedata
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:  # pragma: no cover
@@ -433,21 +438,25 @@ DEFAULT_UPDATE_FREQUENCY = 1
 
 
 ####################################################################
-# Keychain access errors
+# Lockfile and Keychain access errors
 ####################################################################
 
+class AcquisitionError(Exception):
+    """Raised if a lock cannot be acquired."""
+
+
 class KeychainError(Exception):
-    """Raised by methods :meth:`Workflow.save_password`,
+    """Raised for unknown Keychain errors.
+
+    Raised by methods :meth:`Workflow.save_password`,
     :meth:`Workflow.get_password` and :meth:`Workflow.delete_password`
     when ``security`` CLI app returns an unknown error code.
-
     """
 
 
 class PasswordNotFound(KeychainError):
     """Raised by method :meth:`Workflow.get_password` when ``account``
     is unknown to the Keychain.
-
     """
 
 
@@ -457,7 +466,6 @@ class PasswordExists(KeychainError):
     You should never receive this error: it is used internally
     by the :meth:`Workflow.save_password` method to know if it needs
     to delete the old password first (a Keychain implementation detail).
-
     """
 
 
@@ -466,7 +474,7 @@ class PasswordExists(KeychainError):
 ####################################################################
 
 def isascii(text):
-    """Test if ``text`` contains only ASCII characters
+    """Test if ``text`` contains only ASCII characters.
 
     :param text: text to test for ASCII-ness
     :type text: ``unicode``
@@ -503,6 +511,7 @@ class SerializerManager(object):
     """
 
     def __init__(self):
+        """Create new SerializerManager object."""
         self._serializers = {}
 
     def register(self, name, serializer):
@@ -528,19 +537,19 @@ class SerializerManager(object):
         self._serializers[name] = serializer
 
     def serializer(self, name):
-        """Return serializer object for ``name`` or ``None`` if no such
-        serializer is registered
+        """Return serializer object for ``name``.
 
         :param name: Name of serializer to return
         :type name: ``unicode`` or ``str``
-        :returns: serializer object or ``None``
+        :returns: serializer object or ``None`` if no such serializer
+            is registered.
 
         """
 
         return self._serializers.get(name)
 
     def unregister(self, name):
-        """Remove registered serializer with ``name``
+        """Remove registered serializer with ``name``.
 
         Raises a :class:`ValueError` if there is no such registered
         serializer.
@@ -552,7 +561,8 @@ class SerializerManager(object):
         """
 
         if name not in self._serializers:
-            raise ValueError('No such serializer registered : {0}'.format(name))
+            raise ValueError('No such serializer registered : {0}'.format(
+                             name))
 
         serializer = self._serializers[name]
         del self._serializers[name]
@@ -561,7 +571,7 @@ class SerializerManager(object):
 
     @property
     def serializers(self):
-        """Return names of registered serializers"""
+        """Return names of registered serializers."""
         return sorted(self._serializers.keys())
 
 
@@ -696,8 +706,9 @@ manager.register('json', JSONSerializer)
 
 
 class Item(object):
-    """Represents a feedback item for Alfred. Generates Alfred-compliant
-    XML for a single item.
+    """Represents a feedback item for Alfred.
+
+    Generates Alfred-compliant XML for a single item.
 
     You probably shouldn't use this class directly, but via
     :meth:`Workflow.add_item`. See :meth:`~Workflow.add_item`
@@ -787,6 +798,154 @@ class Item(object):
         return root
 
 
+class LockFile(object):
+    """Context manager to create lock files."""
+
+    def __init__(self, protected_path, timeout=0, delay=0.05):
+        """Create new :class:`LockFile` object."""
+        self.lockfile = protected_path + '.lock'
+        self.timeout = timeout
+        self.delay = delay
+        self._locked = False
+
+    @property
+    def locked(self):
+        """`True` if file is locked by this instance."""
+        return self._locked
+
+    def acquire(self, blocking=True):
+        """Acquire the lock if possible.
+
+        If the lock is in use and ``blocking`` is ``False``, return
+        ``False``.
+
+        Otherwise, check every `self.delay` seconds until it acquires
+        lock or exceeds `self.timeout` and raises an exception.
+
+        """
+        start = time.time()
+        while True:
+            try:
+                fd = os.open(self.lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+                with os.fdopen(fd, 'w') as fd:
+                    fd.write('{0}'.format(os.getpid()))
+                break
+            except OSError as err:
+                if err.errno != errno.EEXIST:  # pragma: no cover
+                    raise
+                if self.timeout and (time.time() - start) >= self.timeout:
+                    raise AcquisitionError('Lock acquisition timed out.')
+                if not blocking:
+                    return False
+                time.sleep(self.delay)
+
+        self._locked = True
+        return True
+
+    def release(self):
+        """Release the lock by deleting `self.lockfile`."""
+        self._locked = False
+        os.unlink(self.lockfile)
+
+    def __enter__(self):
+        """Acquire lock."""
+        self.acquire()
+        return self
+
+    def __exit__(self, typ, value, traceback):
+        """Release lock."""
+        self.release()
+
+    def __del__(self):
+        """Clear up `self.lockfile`."""
+        if self._locked:  # pragma: no cover
+            self.release()
+
+
+@contextmanager
+def atomic_writer(file_path, mode):
+    """Atomic file writer.
+
+    :param file_path: path of file to write to.
+    :type file_path: ``unicode``
+    :param mode: sames as for `func:open`
+    :type mode: string
+
+    .. versionadded:: 1.12
+
+    Context manager that ensures the file is only written if the write
+    succeeds. The data is first written to a temporary file.
+
+    """
+
+    temp_suffix = '.aw.temp'
+    temp_file_path = file_path + temp_suffix
+    with open(temp_file_path, mode) as file_obj:
+        try:
+            yield file_obj
+            os.rename(temp_file_path, file_path)
+        finally:
+            try:
+                os.remove(temp_file_path)
+            except (OSError, IOError):
+                pass
+
+
+class uninterruptible(object):
+    """Decorator that postpones SIGTERM until wrapped function is complete.
+
+    .. versionadded:: 1.12
+
+    Since version 2.7, Alfred allows Script Filters to be killed. If
+    your workflow is killed in the middle of critical code (e.g.
+    writing data to disk), this may corrupt your workflow's data.
+
+    Use this decorator to wrap critical functions that *must* complete.
+    If the script is killed while a wrapped function is executing,
+    the SIGTERM will be caught and handled after your function has
+    finished executing.
+
+    Alfred-Workflow uses this internally to ensure its settings, data
+    and cache writes complete.
+
+    .. important::
+
+        This decorator is NOT thread-safe.
+
+    """
+
+    def __init__(self, func, class_name=''):
+        self.func = func
+        self._caught_signal = None
+
+    def signal_handler(self, signum, frame):
+        """Called when process receives SIGTERM."""
+        self._caught_signal = (signum, frame)
+
+    def __call__(self, *args, **kwargs):
+        self._caught_signal = None
+        # Register handler for SIGTERM, then call `self.func`
+        self.old_signal_handler = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+
+        self.func(*args, **kwargs)
+
+        # Restore old signal handler
+        signal.signal(signal.SIGTERM, self.old_signal_handler)
+
+        # Handle any signal caught during execution
+        if self._caught_signal is not None:
+            signum, frame = self._caught_signal
+            if callable(self.old_signal_handler):
+                self.old_signal_handler(signum, frame)
+            elif self.old_signal_handler == signal.SIG_DFL:
+                sys.exit(0)
+
+    def __get__(self, obj=None, klass=None):
+        return self.__class__(self.func.__get__(obj, klass),
+                              klass.__name__)
+
+
 class Settings(dict):
     """A dictionary that saves itself when changed.
 
@@ -810,6 +969,7 @@ class Settings(dict):
         super(Settings, self).__init__()
         self._filepath = filepath
         self._nosave = False
+        self._original = {}
         if os.path.exists(self._filepath):
             self._load()
         elif defaults:
@@ -821,9 +981,12 @@ class Settings(dict):
         """Load cached settings from JSON file `self._filepath`"""
 
         self._nosave = True
+        d = {}
         with open(self._filepath, 'rb') as file_obj:
             for key, value in json.load(file_obj, encoding='utf-8').items():
-                self[key] = value
+                d[key] = value
+        self.update(d)
+        self._original = deepcopy(d)
         self._nosave = False
 
     def save(self):
@@ -836,16 +999,19 @@ class Settings(dict):
         if self._nosave:
             return
         data = {}
-        for key, value in self.items():
-            data[key] = value
-        with open(self._filepath, 'wb') as file_obj:
-            json.dump(data, file_obj, sort_keys=True, indent=2,
-                      encoding='utf-8')
+        data.update(self)
+        # for key, value in self.items():
+        #     data[key] = value
+        with LockFile(self._filepath):
+            with atomic_writer(self._filepath, 'wb') as file_obj:
+                json.dump(data, file_obj, sort_keys=True, indent=2,
+                          encoding='utf-8')
 
     # dict methods
     def __setitem__(self, key, value):
-        super(Settings, self).__setitem__(key, value)
-        self.save()
+        if self._original.get(key) != value:
+            super(Settings, self).__setitem__(key, value)
+            self.save()
 
     def __delitem__(self, key):
         super(Settings, self).__delitem__(key)
@@ -1321,7 +1487,7 @@ class Workflow(object):
             logfile = logging.handlers.RotatingFileHandler(
                 self.logfile,
                 maxBytes=1024*1024,
-                backupCount=0)
+                backupCount=1)
 
             console = logging.StreamHandler()
 
@@ -1503,9 +1669,9 @@ class Workflow(object):
 
         if serializer is None:
             raise ValueError(
-                'Unknown serializer `{0}`. Register a corresponding serializer '
-                'with `manager.register()` to load this data.'.format(
-                    serializer_name))
+                'Unknown serializer `{0}`. Register a corresponding '
+                'serializer with `manager.register()` '
+                'to load this data.'.format(serializer_name))
 
         self.logger.debug('Data `{0}` stored in `{1}` format'.format(
             name, serializer_name))
@@ -1534,6 +1700,8 @@ class Workflow(object):
 
         If ``data`` is ``None``, the datastore will be deleted.
 
+        Note that the datastore does NOT support mutliple threads.
+
         :param name: name of datastore
         :param data: object(s) to store. **Note:** some serializers
             can only handled certain types of data.
@@ -1543,6 +1711,15 @@ class Workflow(object):
         :returns: data in datastore or ``None``
 
         """
+
+        # Ensure deletion is not interrupted by SIGTERM
+        @uninterruptible
+        def delete_paths(paths):
+            """Clear one or more data stores"""
+            for path in paths:
+                if os.path.exists(path):
+                    os.unlink(path)
+                    self.logger.debug('Deleted data file : {0}'.format(path))
 
         serializer_name = serializer or self.data_serializer
 
@@ -1567,19 +1744,20 @@ class Workflow(object):
                 '`manager.register()` first.'.format(serializer_name))
 
         if data is None:  # Delete cached data
-            for path in (metadata_path, data_path):
-                if os.path.exists(path):
-                    os.unlink(path)
-                    self.logger.debug('Deleted data file : {0}'.format(path))
-
+            delete_paths((metadata_path, data_path))
             return
 
-        # Save file extension
-        with open(metadata_path, 'wb') as file_obj:
-            file_obj.write(serializer_name)
+        # Ensure write is not interrupted by SIGTERM
+        @uninterruptible
+        def _store():
+            # Save file extension
+            with atomic_writer(metadata_path, 'wb') as file_obj:
+                file_obj.write(serializer_name)
 
-        with open(data_path, 'wb') as file_obj:
-            serializer.dump(data, file_obj)
+            with atomic_writer(data_path, 'wb') as file_obj:
+                serializer.dump(data, file_obj)
+
+        _store()
 
         self.logger.debug('Stored data saved at : {0}'.format(data_path))
 
@@ -1640,7 +1818,7 @@ class Workflow(object):
                 self.logger.debug('Deleted cache file : %s', cache_path)
             return
 
-        with open(cache_path, 'wb') as file_obj:
+        with atomic_writer(cache_path, 'wb') as file_obj:
             serializer.dump(data, file_obj)
 
         self.logger.debug('Cached data saved at : %s', cache_path)
