@@ -6,7 +6,7 @@ import os
 from workflow import Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
 
-from brew_actions import ACTIONS
+import brew_actions
 import brew_refresh
 import helpers as h
 
@@ -102,14 +102,15 @@ if __name__ == '__main__':
                                   max_age=3600)
             WF.add_item(info, autocomplete='', icon=h.get_icon(WF, 'info'))
         else:
+            actions = brew_actions.ACTIONS
             # filter actions by query
             if query:
-                ACTIONS = WF.filter(query, ACTIONS,
+                actions = WF.filter(query, actions,
                                     key=h.search_key_for_action,
                                     match_on=MATCH_SUBSTRING)
 
-            if len(ACTIONS) > 0:
-                for action in ACTIONS:
+            if len(actions) > 0:
+                for action in actions:
                     WF.add_item(action['name'], action['description'],
                                 uid=action['name'],
                                 autocomplete=action['autocomplete'],

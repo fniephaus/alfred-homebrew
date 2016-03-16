@@ -7,7 +7,7 @@ import subprocess
 from workflow import Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
 
-from cask_actions import ACTIONS
+import cask_actions
 import cask_refresh
 import helpers as h
 
@@ -84,17 +84,18 @@ if __name__ == '__main__':
         # delete cached file
         WF.cache_data('cask_not_installed', None)
     elif WF.cached_data('cask_not_configured', cask_not_configured, max_age=0):
-
         WF.add_item('Cask does not seem to be properly configured!',
                     'Hit enter to see what you need to do...',
                     arg=OPEN_HELP,
                     valid=True,
                     icon='cask.png')
-        WF.add_item(ACTIONS[8]['name'], ACTIONS[8]['description'],
-                    uid=ACTIONS[8]['name'],
-                    autocomplete=ACTIONS[8]['autocomplete'],
-                    arg=ACTIONS[8]['arg'],
-                    valid=ACTIONS[8]['valid'],
+
+        config = next(a for a in cask_actions.ACTIONS if a.name == 'config')
+        WF.add_item(config['name'], config['description'],
+                    uid=config['name'],
+                    autocomplete=config['autocomplete'],
+                    arg=config['arg'],
+                    valid=config['valid'],
                     icon=h.get_icon(WF, 'chevron-right'))
 
         query = WF.args[0] if len(WF.args) else None
@@ -150,14 +151,15 @@ if __name__ == '__main__':
         elif query and query.startswith('config'):
             edit_settings()
         else:
+            actions = cask_actions.ACTIONS
             # filter actions by query
             if query:
-                ACTIONS = WF.filter(query, ACTIONS,
+                actions = WF.filter(query, actions,
                                     key=h.search_key_for_action,
                                     match_on=MATCH_SUBSTRING)
 
-            if len(ACTIONS) > 0:
-                for action in ACTIONS:
+            if len(actions) > 0:
+                for action in actions:
                     WF.add_item(action['name'], action['description'],
                                 uid=action['name'],
                                 autocomplete=action['autocomplete'],
