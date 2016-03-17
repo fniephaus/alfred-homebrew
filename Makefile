@@ -2,7 +2,7 @@ all: clean build
 
 build:
 	cd src ; \
-	zip ../Homebrew-for-Alfred.alfredworkflow . -r --exclude=*.DS_Store* --exclude=*.pyc*
+	zip ../Homebrew-for-Alfred.alfredworkflow . -r --exclude=*.DS_Store* --exclude=*.pyc* --exclude=*.pyo*
 
 clean:
 	rm -f *.alfredworkflow
