@@ -1489,7 +1489,7 @@ class Workflow(object):
                 maxBytes=1024*1024,
                 backupCount=1)
 
-            console = logging.StreamHandler()
+            # console = logging.StreamHandler()
 
             fmt = logging.Formatter(
                 '%(asctime)s %(filename)s:%(lineno)s'
@@ -1497,10 +1497,10 @@ class Workflow(object):
                 datefmt='%H:%M:%S')
 
             logfile.setFormatter(fmt)
-            console.setFormatter(fmt)
+            # console.setFormatter(fmt)
 
             logger.addHandler(logfile)
-            logger.addHandler(console)
+            # logger.addHandler(console)
 
         logger.setLevel(logging.DEBUG)
         self._logger = logger
