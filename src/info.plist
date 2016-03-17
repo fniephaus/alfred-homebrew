@@ -50,8 +50,18 @@
 				<integer>102</integer>
 				<key>keyword</key>
 				<string>brew</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
 				<key>script</key>
 				<string>python brew.py "{query}"</string>
+				<key>subtext</key>
+				<string>Control Homebrew</string>
 				<key>title</key>
 				<string>Brew</string>
 				<key>type</key>
@@ -90,8 +100,18 @@
 				<integer>102</integer>
 				<key>keyword</key>
 				<string>cask</string>
+				<key>queuedelaycustom</key>
+				<integer>3</integer>
+				<key>queuedelayimmediatelyinitially</key>
+				<true/>
+				<key>queuedelaymode</key>
+				<integer>0</integer>
+				<key>queuemode</key>
+				<integer>1</integer>
 				<key>script</key>
 				<string>python cask.py "{query}"</string>
+				<key>subtext</key>
+				<string>Control Homebrew Cask</string>
 				<key>title</key>
 				<string>Cask</string>
 				<key>type</key>
