@@ -30,40 +30,77 @@ def execute(cmd_list):
     return cmd
 
 
-def get_all_packages(wf, query):
+def get_all_formulae():
     return execute(['brew', 'search']).splitlines()
 
 
-def get_installed_packages():
+def get_installed_formulae():
     return execute(['brew', 'list', '--versions']).splitlines()
+
+
+def get_pinned_formulae():
+    return execute(['brew', 'list', '--pinned', '--versions']).splitlines()
+
+
+def get_outdated_formulae():
+    return execute(['brew', 'outdated']).splitlines()
 
 
 def get_info():
     return execute(['brew', 'info'])
 
 
+def get_commands(wf, query):
+    result = execute(['brew', 'commands']).splitlines()
+    commands = [x for x in result if ' ' not in x]
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        return wf.filter(query_filter[1], commands, match_on=MATCH_SUBSTRING)
+    return commands
+
+
 def get_open_link_command(formula):
     return 'open %s/%s.rb && exit' % (FORMULA_URL, formula)
 
 
-def filter_all_packages(wf, query):
-    formulas = wf.cached_data('brew_all_formulas',
-                              get_all_packages,
+def filter_all_formulae(wf, query):
+    formulae = wf.cached_data('brew_all_formulae',
+                              get_all_formulae,
                               max_age=3600)
     query_filter = query.split()
     if len(query_filter) > 1:
-        return wf.filter(query_filter[1], formulas, match_on=MATCH_SUBSTRING)
-    return formulas
+        return wf.filter(query_filter[1], formulae, match_on=MATCH_SUBSTRING)
+    return formulae
 
 
-def filter_installed_packages(wf, query):
-    formulas = wf.cached_data('brew_installed_formulas',
-                              get_installed_packages,
+def filter_installed_formulae(wf, query):
+    formulae = wf.cached_data('brew_installed_formulae',
+                              get_installed_formulae,
                               max_age=3600)
     query_filter = query.split()
     if len(query_filter) > 1:
-        return wf.filter(query_filter[1], formulas, match_on=MATCH_SUBSTRING)
-    return formulas
+        return wf.filter(query_filter[1], formulae, match_on=MATCH_SUBSTRING)
+    return formulae
+
+
+def filter_pinned_formulae(wf, query):
+    formulae = wf.cached_data('brew_pinned_formulae',
+                              get_pinned_formulae,
+                              max_age=3600)
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        return wf.filter(query_filter[1], formulae, match_on=MATCH_SUBSTRING)
+    return formulae
+
+
+def filter_outdated_formulae(wf, query):
+    formulae = wf.cached_data('brew_outdated_formulae',
+                              get_outdated_formulae,
+                              max_age=3600)
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        return wf.filter(query_filter[1], formulae, match_on=MATCH_SUBSTRING)
+    return formulae
 
 
 def brew_installed():
@@ -74,6 +111,14 @@ def main(wf):
     if wf.update_available:
         wf.add_item('An update is available!',
                     autocomplete='workflow:update',
+                    valid=False,
+                    icon=helpers.get_icon(wf, 'cloud-download'))
+
+    if len(wf.cached_data('brew_outdated_formulae',
+                          get_outdated_formulae,
+                          max_age=3600)) > 0:
+        wf.add_item('Some of your formulae are outdated!',
+                    autocomplete='outdated ',
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
@@ -91,37 +136,85 @@ def main(wf):
         query = wf.args[0] if len(wf.args) else None
 
         if query and query.startswith('install'):
-            for formula in filter_all_packages(wf, query):
-                wf.add_item(formula, 'Install formula',
+            for formula in filter_all_formulae(wf, query):
+                wf.add_item(formula, 'Install formula.',
                             arg='brew install %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('search'):
-            for formula in filter_all_packages(wf, query):
-                wf.add_item(formula, 'Open formula on GitHub',
+            for formula in filter_all_formulae(wf, query):
+                wf.add_item(formula, 'Open formula on GitHub.',
                             arg=get_open_link_command(formula),
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('uninstall'):
-            for formula in filter_installed_packages(wf, query):
+            for formula in filter_installed_formulae(wf, query):
                 name = formula.rsplit()[0]
-                wf.add_item(formula, 'Uninstall formula',
+                wf.add_item(formula, 'Uninstall formula.',
                             arg='brew uninstall %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('list'):
-            for formula in filter_installed_packages(wf, query):
+            for formula in filter_installed_formulae(wf, query):
                 name = formula.rsplit()[0]
-                wf.add_item(formula, 'Open formula on GitHub',
+                wf.add_item(formula, 'Open formula on GitHub.',
                             arg=get_open_link_command(name),
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+        elif query and query.startswith('pin'):
+            for formula in filter_installed_formulae(wf, query):
+                name = formula.rsplit()[0]
+                wf.add_item(formula, 'Pin formula.',
+                            arg='brew pin %s' % name,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+                # delete cached file
+                wf.cache_data('brew_pinned_formulae', None)
+        elif query and query.startswith('unpin'):
+            for formula in filter_pinned_formulae(wf, query):
+                name = formula.rsplit()[0]
+                wf.add_item(formula, 'Unpin formula.',
+                            arg='brew unpin %s' % name,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+                # delete cached file
+                wf.cache_data('brew_pinned_formulae', None)
+        elif query and query.startswith('cat'):
+            for formula in filter_all_formulae(wf, query):
+                name = formula.rsplit()[0]
+                wf.add_item(formula, 'Display the source to this formula.',
+                            arg='brew cat %s' % name,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+        elif query and query.startswith('outdated'):
+            for formula in filter_outdated_formulae(wf, query):
+                name = formula.rsplit()[0]
+                wf.add_item(formula, 'Update formula.',
+                            arg='upgrade %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('info'):
             wf.add_item(get_info(),
                         autocomplete='',
                         icon=helpers.get_icon(wf, 'info'))
+        elif query and query.startswith('commands'):
+            for command in get_commands(wf, query):
+                wf.add_item(command, 'Run this command.',
+                            arg='brew %s' % command,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'chevron-right'))
         else:
             actions = brew_actions.ACTIONS
+            if len(wf.cached_data('brew_pinned_formulae',
+                                  get_pinned_formulae,
+                                  max_age=3600)) > 0:
+                actions.append({
+                    'name': 'Unpin',
+                    'description': 'Unpin formula.',
+                    'autocomplete': 'unpin ',
+                    'arg': '',
+                    'valid': False,
+                })
             # filter actions by query
             if query:
                 actions = wf.filter(query, actions,

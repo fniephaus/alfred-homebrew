@@ -1,28 +1,28 @@
 ACTIONS = [
     {
         'name': 'install',
-        'description': 'Install new packages',
+        'description': 'Install formula.',
         'autocomplete': 'install ',
         'arg': '',
         'valid': False
     },
     {
         'name': 'uninstall',
-        'description': 'Uninstall packages',
+        'description': 'Uninstall formula.',
         'autocomplete': 'uninstall ',
         'arg': '',
         'valid': False
     },
     {
         'name': 'search',
-        'description': 'Search packages',
+        'description': 'Perform a substring search of formula names.',
         'autocomplete': 'search ',
         'arg': '',
         'valid': False
     },
     {
         'name': 'list',
-        'description': 'List installed packages',
+        'description': 'List all installed formulae.',
         'autocomplete': 'list ',
         'arg': '',
         'valid': False
@@ -52,6 +52,34 @@ ACTIONS = [
         'name': 'info',
         'description': 'Show info',
         'autocomplete': 'info',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'cat',
+        'description': 'Display the source to formula.',
+        'autocomplete': 'cat ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'cleanup',
+        'description': 'Remove any older versions from the cellar.',
+        'autocomplete': '',
+        'arg': 'brew cleanup',
+        'valid': True
+    },
+    {
+        'name': 'commands',
+        'description': 'Show a list of built-in and external commands.',
+        'autocomplete': 'commands ',
+        'arg': '',
+        'valid': False
+    },
+    {
+        'name': 'pin',
+        'description': 'Pin the specified formulae.',
+        'autocomplete': 'pin ',
         'arg': '',
         'valid': False
     },
