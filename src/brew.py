@@ -114,14 +114,6 @@ def main(wf):
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
-    if len(wf.cached_data('brew_outdated_formulae',
-                          get_outdated_formulae,
-                          max_age=3600)) > 0:
-        wf.add_item('Some of your formulae are outdated!',
-                    autocomplete='outdated ',
-                    valid=False,
-                    icon=helpers.get_icon(wf, 'cloud-download'))
-
     if not brew_installed():
         wf.add_item('Brew does not seem to be installed!',
                     'Hit enter to see what you need to do...',
@@ -134,6 +126,15 @@ def main(wf):
     else:
         # extract query
         query = wf.args[0] if len(wf.args) else None
+
+        if (not query and
+                len(wf.cached_data('brew_outdated_formulae',
+                                   get_outdated_formulae,
+                                   max_age=3600)) > 0):
+            wf.add_item('Some of your formulae are outdated!',
+                        autocomplete='outdated ',
+                        valid=False,
+                        icon=helpers.get_icon(wf, 'cloud-download'))
 
         if query and query.startswith('install'):
             for formula in filter_all_formulae(wf, query):
