@@ -32,21 +32,21 @@ ACTIONS = [
         'description': 'Update brew packages',
         'autocomplete': '',
         'arg': 'brew update',
-        'valid':  True
+        'valid': True
     },
     {
         'name': 'upgrade',
         'description': 'Upgrade brew packages',
         'autocomplete': '',
         'arg': 'brew upgrade',
-        'valid':  True
+        'valid': True
     },
     {
         'name': 'doctor',
         'description': 'Run brew doctor',
         'autocomplete': '',
         'arg': 'brew doctor',
-        'valid':  True
+        'valid': True
     },
     {
         'name': 'info',

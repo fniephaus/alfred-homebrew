@@ -169,23 +169,11 @@ def main(wf):
                             arg='brew cask home %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
-        elif query and query.startswith('alfred'):
-            info = execute(wf, 'alfred status')
-            for text in info.splitlines():
-                wf.add_item(text, icon=helpers.get_icon(wf, 'info'))
-            if 'linked' in info:  # make sure it's not an error
-                if 'not linked' in info:
-                    wf.add_item('Add Caskroom to alfred search paths',
-                                arg='brew cask alfred link',
-                                valid=True,
-                                icon=helpers.get_icon(wf, 'chevron-right'))
-                else:
-                    wf.add_item('Remove Caskroom from Alfred search paths',
-                                arg='brew cask alfred unlink',
-                                valid=True,
-                                icon=helpers.get_icon(wf, 'chevron-right'))
         elif query and query.startswith('config'):
-            edit_settings()
+            edit_settings(wf)
+            wf.add_item('`settings.json` has been opened.',
+                        autocomplete='',
+                        icon=helpers.get_icon(wf, 'info'))
         else:
             actions = cask_actions.ACTIONS
             # filter actions by query

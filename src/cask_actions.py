@@ -32,26 +32,19 @@ ACTIONS = [
         'description': 'Update brew casks',
         'autocomplete': '',
         'arg': 'brew cask update',
-        'valid':  True
+        'valid': True
     },
     {
         'name': 'doctor',
         'description': 'Run brew doctor',
         'autocomplete': '',
         'arg': 'brew cask doctor',
-        'valid':  True
+        'valid': True
     },
     {
         'name': 'home',
         'description': 'Open the homepage of a cask',
         'autocomplete': 'home',
-        'arg': '',
-        'valid': False
-    },
-    {
-        'name': 'alfred',
-        'description': 'Modify Alfred\'s scope to include the Caskroom',
-        'autocomplete': 'alfred',
         'arg': '',
         'valid': False
     },
