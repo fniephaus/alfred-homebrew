@@ -19,7 +19,7 @@ If you installed Homebrew Cask and changed where the applications are installed 
 
 ```shell
 # Specify your defaults in this environment variable
-export HOMEBREW_CASK_OPTS="--appdir=/Applications --caskroom=/usr/local/Caskroom"
+export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 ```
 
 You need to update workflow's settings accordingly to your configuration.
