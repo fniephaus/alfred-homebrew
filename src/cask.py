@@ -16,7 +16,6 @@ OPEN_HELP = 'open https://github.com/fniephaus/alfred-homebrew && exit'
 DEFAULT_SETTINGS = {
     'HOMEBREW_CASK_OPTS': {
         'appdir': '/Applications',
-        'caskroom': '/usr/local/Caskroom'
     }
 }
 
@@ -28,9 +27,8 @@ def execute(wf, command):
     opts = wf.settings.get('HOMEBREW_CASK_OPTS', None)
     cmd_list = ['brew', 'cask', command]
     if opts:
-        if all(k in opts for k in ('appdir', 'caskroom')):
-            cmd_list += ['--appdir=%s' % opts['appdir'],
-                         '--caskroom=%s' % opts['caskroom']]
+        if all(k in opts for k in ('appdir')):
+            cmd_list += ['--appdir=%s' % opts['appdir']]
 
     new_env = os.environ.copy()
     new_env['PATH'] = '/usr/local/bin:%s' % new_env['PATH']
