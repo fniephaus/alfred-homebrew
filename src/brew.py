@@ -12,8 +12,6 @@ import helpers
 
 
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
-FORMULA_URL = 'https://github.com/Homebrew/homebrew/tree/master/Library/' \
-              'Formula'
 BREW_INSTALL_URL = 'https://raw.githubusercontent.com/Homebrew/install/' \
                    'master/install'
 
@@ -57,10 +55,6 @@ def get_commands(wf, query):
     if len(query_filter) > 1:
         return wf.filter(query_filter[1], commands, match_on=MATCH_SUBSTRING)
     return commands
-
-
-def get_open_link_command(formula):
-    return 'open %s/%s.rb && exit' % (FORMULA_URL, formula)
 
 
 def filter_all_formulae(wf, query):
@@ -145,7 +139,7 @@ def main(wf):
         elif query and query.startswith('search'):
             for formula in filter_all_formulae(wf, query):
                 wf.add_item(formula, 'Open formula on GitHub.',
-                            arg=get_open_link_command(formula),
+                            arg='brew info --github %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('uninstall'):
@@ -159,7 +153,7 @@ def main(wf):
             for formula in filter_installed_formulae(wf, query):
                 name = formula.rsplit()[0]
                 wf.add_item(formula, 'Open formula on GitHub.',
-                            arg=get_open_link_command(name),
+                            arg='brew info --github %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('pin'):
