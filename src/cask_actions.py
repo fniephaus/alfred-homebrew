@@ -28,6 +28,13 @@ ACTIONS = [
         'valid': False
     },
     {
+        'name': 'upgrade',
+        'description': 'Upgrade casks',
+        'autocomplete': '',
+        'arg': 'brew cask upgrade',
+        'valid': True
+    },
+    {
         'name': 'doctor',
         'description': 'Run brew doctor',
         'autocomplete': '',

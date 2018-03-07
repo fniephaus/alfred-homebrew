@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
 
 
 def execute(wf, command):
-    if command not in ['search', 'list', 'alfred status']:
+    if command not in ['search', 'list', 'outdated', 'alfred status']:
         return None
 
     opts = wf.settings.get('HOMEBREW_CASK_OPTS', None)
@@ -53,6 +53,10 @@ def get_installed_casks():
     return execute(wf, 'list').splitlines()
 
 
+def get_outdated_casks():
+    return execute(wf, 'outdated').splitlines()
+
+
 def filter_all_casks(wf, query):
     formulas = wf.cached_data('cask_all_casks',
                               get_all_casks,
@@ -66,6 +70,16 @@ def filter_all_casks(wf, query):
 def filter_installed_casks(wf, query):
     formulas = wf.cached_data('cask_installed_casks',
                               get_installed_casks,
+                              max_age=3600)
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        return wf.filter(query_filter[1], formulas, match_on=MATCH_SUBSTRING)
+    return formulas
+
+
+def filter_outdated_casks(wf, query):
+    formulas = wf.cached_data('cask_outdated_casks',
+                              get_outdated_casks,
                               max_age=3600)
     query_filter = query.split()
     if len(query_filter) > 1:
@@ -142,6 +156,15 @@ def main(wf):
         # extract query
         query = wf.args[0] if len(wf.args) else None
 
+        if (not query and
+                len(wf.cached_data('cask_outdated_casks',
+                                   get_outdated_casks,
+                                   max_age=3600)) > 0):
+            wf.add_item('Some of your casks are outdated!',
+                        autocomplete='outdated ',
+                        valid=False,
+                        icon=helpers.get_icon(wf, 'cloud-download'))
+
         if query and query.startswith('install'):
             for formula in filter_all_casks(wf, query):
                 wf.add_item(formula, 'Install cask',
@@ -165,6 +188,13 @@ def main(wf):
             for formula in filter_installed_casks(wf, query):
                 wf.add_item(formula, 'Open homepage',
                             arg='brew cask home %s' % formula,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+        elif query and query.startswith('outdated'):
+            for formula in filter_outdated_casks(wf, query):
+                name = formula.split(' ')[0]
+                wf.add_item(formula, 'Upgrade cask',
+                            arg='brew cask upgrade %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('config'):
