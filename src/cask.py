@@ -36,7 +36,7 @@ def execute(wf, command):
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    env=new_env).communicate()
-    if err:
+    if err and 'deprecated' not in err:
         return 'Error: %s' % err
 
     if 'sudo' in result:
@@ -125,9 +125,8 @@ def main(wf):
                     valid=True,
                     icon='cask.png')
         wf.add_item('I trust this workflow',
-                    'Hit enter to run `brew install caskroom/cask/brew-cask`'
-                    ' to install cask...',
-                    arg='brew install caskroom/cask/brew-cask',
+                    'Hit enter to run `brew tap caskroom/cask` to get cask...',
+                    arg='brew tap caskroom/cask',
                     valid=True,
                     icon='cask.png')
         # delete cached file
