@@ -184,7 +184,7 @@ def main(wf):
         elif query and query.startswith('outdated'):
             for formula in filter_outdated_formulae(wf, query):
                 name = formula.rsplit()[0]
-                wf.add_item(formula, 'Update formula.',
+                wf.add_item(formula, 'Upgrade formula.',
                             arg='brew upgrade %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
