@@ -20,12 +20,8 @@ DEFAULT_SETTINGS = {
 }
 
 
-def execute(wf, command):
-    if command not in ['search', 'list', 'outdated', 'alfred status']:
-        return None
-
+def execute(wf, cmd_list):
     opts = wf.settings.get('HOMEBREW_CASK_OPTS', None)
-    cmd_list = ['brew', 'cask', command]
     if opts:
         if all(k in opts for k in ('appdir')):
             cmd_list += ['--appdir=%s' % opts['appdir']]
@@ -36,7 +32,7 @@ def execute(wf, command):
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    env=new_env).communicate()
-    if err and 'deprecated' not in err:
+    if err:
         return 'Error: %s' % err
 
     if 'sudo' in result:
@@ -46,15 +42,15 @@ def execute(wf, command):
 
 
 def get_all_casks():
-    return execute(wf, 'search').splitlines()[1:]
+    return execute(wf, ['brew', 'search', '--casks']).splitlines()
 
 
 def get_installed_casks():
-    return execute(wf, 'list').splitlines()
+    return execute(wf, ['brew', 'cask', 'list']).splitlines()
 
 
 def get_outdated_casks():
-    return execute(wf, 'outdated').splitlines()
+    return execute(wf, ['brew', 'cask', 'outdated']).splitlines()
 
 
 def filter_all_casks(wf, query):
@@ -98,11 +94,11 @@ def edit_settings(wf):
 
 
 def cask_installed(wf):
-    return not execute(wf, 'search').startswith('Error')
+    return not execute(wf, ['brew', 'search', '--casks']).startswith('Error')
 
 
 def cask_configured(wf):
-    return not execute(wf, 'search').startswith('Config')
+    return not execute(wf, ['brew', 'search', '--casks']).startswith('Config')
 
 
 def main(wf):
