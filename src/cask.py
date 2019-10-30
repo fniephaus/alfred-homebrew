@@ -134,7 +134,7 @@ def main(wf):
                     valid=True,
                     icon='cask.png')
 
-        config = next(a for a in cask_actions.ACTIONS if a.name == 'config')
+        config = next(a for a in cask_actions.ACTIONS if a["name"] == 'config')
         wf.add_item(config['name'], config['description'],
                     uid=config['name'],
                     autocomplete=config['autocomplete'],
