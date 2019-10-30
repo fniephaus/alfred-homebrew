@@ -1,7 +1,7 @@
 Homebrew and Cask for Alfred
 =========
 
-Easily control [Homebrew](http://brew.sh) and [Cask](http://caskroom.io/) with [Alfred](http://www.alfredapp.com).
+Easily control [Homebrew](https://brew.sh) and [Cask](https://brew.sh) with [Alfred](http://www.alfredapp.com).
 
 ![Homebrew & Cask for Alfred Screenshot](https://raw.github.com/fniephaus/alfred-homebrew/master/screenshot.gif)
 
