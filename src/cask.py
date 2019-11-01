@@ -90,14 +90,6 @@ def edit_settings(wf):
     subprocess.call(['open', wf.settings_path])
 
 
-def cask_installed(wf):
-    return not execute(wf, ['brew', 'search', '--casks']).startswith('Error')
-
-
-def cask_configured(wf):
-    return not execute(wf, ['brew', 'search', '--casks']).startswith('Config')
-
-
 def main(wf):
     if wf.update_available:
         wf.add_item('An update is available!',
@@ -105,45 +97,8 @@ def main(wf):
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
-    def _cask_installed():
-        return cask_installed(wf)
-
-    def _cask_configured():
-        return cask_configured(wf)
-
-    if not wf.cached_data('cask_installed', _cask_installed, max_age=0):
-        wf.add_item('Cask does not seem to be installed!',
-                    'Hit enter to see what you need to do...',
-                    arg='open http://caskroom.io/ && exit',
-                    valid=True,
-                    icon='cask.png')
-        wf.add_item('I trust this workflow',
-                    'Hit enter to run `brew tap caskroom/cask` to get cask...',
-                    arg='brew tap caskroom/cask',
-                    valid=True,
-                    icon='cask.png')
-        # delete cached file
-        wf.cache_data('cask_installed', None)
-    elif not wf.cached_data('cask_configured', _cask_configured, max_age=0):
-        wf.add_item('Cask does not seem to be properly configured!',
-                    'Hit enter to see what you need to do...',
-                    arg=OPEN_HELP,
-                    valid=True,
-                    icon='cask.png')
-
-        config = next(a for a in cask_actions.ACTIONS if a["name"] == 'config')
-        wf.add_item(config['name'], config['description'],
-                    uid=config['name'],
-                    autocomplete=config['autocomplete'],
-                    arg=config['arg'],
-                    valid=config['valid'],
-                    icon=helpers.get_icon(wf, 'chevron-right'))
-
-        query = wf.args[0] if len(wf.args) else None
-        if query and query.startswith('config'):
-            edit_settings(wf)
-        # delete cached file
-        wf.cache_data('cask_configured', None)
+    if not helpers.brew_installed():
+        helpers.brew_installation_instructions(wf)
     else:
         # extract query
         query = wf.args[0] if len(wf.args) else None

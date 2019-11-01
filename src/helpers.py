@@ -1,3 +1,24 @@
+import os
+
+BREW_INSTALL_URL = 'https://raw.githubusercontent.com/Homebrew/install/' \
+                   'master/install'
+
+
+def brew_installed():
+    return os.path.isfile('/usr/local/bin/brew')
+
+
+def brew_installation_instructions(wf):
+    wf.add_item('Brew does not seem to be installed!',
+                'Hit enter to see what you need to do...',
+                arg='open https://brew.sh/#install && exit',
+                valid=True)
+    wf.add_item('I trust this workflow',
+                'Hit enter to install brew...',
+                arg='ruby -e "$(curl -fsSL %s)"' % BREW_INSTALL_URL,
+                valid=True)
+
+
 def is_dark(wf):
     if not wf.alfred_env.get('theme_background'):
         return True

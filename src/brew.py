@@ -12,8 +12,6 @@ import helpers
 
 
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
-BREW_INSTALL_URL = 'https://raw.githubusercontent.com/Homebrew/install/' \
-                   'master/install'
 
 
 def execute(cmd_list):
@@ -97,10 +95,6 @@ def filter_outdated_formulae(wf, query):
     return formulae
 
 
-def brew_installed():
-    return os.path.isfile('/usr/local/bin/brew')
-
-
 def main(wf):
     if wf.update_available:
         wf.add_item('An update is available!',
@@ -108,15 +102,8 @@ def main(wf):
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
-    if not brew_installed():
-        wf.add_item('Brew does not seem to be installed!',
-                    'Hit enter to see what you need to do...',
-                    arg='open http://brew.sh/#install && exit',
-                    valid=True)
-        wf.add_item('I trust this workflow',
-                    'Hit enter to install brew...',
-                    arg='ruby -e "$(curl -fsSL %s)"' % BREW_INSTALL_URL,
-                    valid=True)
+    if not helpers.brew_installed():
+        helpers.brew_installation_instructions(wf)
     else:
         # extract query
         query = wf.args[0] if len(wf.args) else None
