@@ -35,9 +35,6 @@ def execute(wf, cmd_list):
     if err:
         return 'Error: %s' % err
 
-    if 'sudo' in result:
-        return 'Config'
-
     return result
 
 
