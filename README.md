@@ -15,7 +15,7 @@ Easily control [Homebrew](https://brew.sh) and [Cask](https://brew.sh) with [Alf
 
 ## Installation
 
-Download the [latest release](https://github.com/fniephaus/alfred-homebrew/releases/latest) and double click on the .alfredworkflow file or use [packal](http://www.packal.org).
+Download the [latest release](https://github.com/fniephaus/alfred-homebrew/releases/latest) and double click on the .alfredworkflow file, or use [packal](http://www.packal.org/workflow/homebrew-and-cask-alfred).
 
 
 ## Configuration
