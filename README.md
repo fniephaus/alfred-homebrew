@@ -13,6 +13,11 @@ Easily control [Homebrew](https://brew.sh) and [Cask](https://brew.sh) with [Alf
 - Background cache refresh
 
 
+## Installation
+
+Download the [latest release](https://github.com/fniephaus/alfred-homebrew/releases/latest) and double click on the .alfredworkflow file, or use [packal](http://www.packal.org/workflow/homebrew-and-cask-alfred).
+
+
 ## Configuration
 
 If you installed Homebrew Cask and changed where the applications are installed by adding a line like this to your `.bash_profile` or `.zshenv`:
