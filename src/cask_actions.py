@@ -31,7 +31,7 @@ ACTIONS = [
         'name': 'upgrade',
         'description': 'Upgrade casks',
         'autocomplete': '',
-        'arg': 'brew cask upgrade',
+        'arg': 'brew upgrade --cask',
         'valid': True
     },
     {

@@ -38,7 +38,7 @@ ACTIONS = [
         'name': 'upgrade',
         'description': 'Upgrade brew packages',
         'autocomplete': '',
-        'arg': 'brew upgrade',
+        'arg': 'brew upgrade --formula',
         'valid': True
     },
     {

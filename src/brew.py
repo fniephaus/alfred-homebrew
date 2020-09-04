@@ -27,7 +27,7 @@ def execute(cmd_list):
 
 
 def get_all_formulae():
-    return execute(['brew', 'search']).splitlines()
+    return execute(['brew', 'search', '--formula']).splitlines()
 
 
 def get_installed_formulae():
@@ -39,7 +39,7 @@ def get_pinned_formulae():
 
 
 def get_outdated_formulae():
-    return execute(['brew', 'outdated']).splitlines()
+    return execute(['brew', 'outdated', '--formula']).splitlines()
 
 
 def get_info():
