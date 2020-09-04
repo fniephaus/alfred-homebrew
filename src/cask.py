@@ -39,15 +39,15 @@ def execute(wf, cmd_list):
 
 
 def get_all_casks():
-    return execute(wf, ['brew', 'search', '--casks']).splitlines()
+    return execute(wf, ['brew', 'search', '--cask']).splitlines()
 
 
 def get_installed_casks():
-    return execute(wf, ['brew', 'cask', 'list']).splitlines()
+    return execute(wf, ['brew', 'list', '--cask']).splitlines()
 
 
 def get_outdated_casks():
-    return execute(wf, ['brew', 'cask', 'outdated']).splitlines()
+    return execute(wf, ['brew', 'outdated', '--cask']).splitlines()
 
 
 def filter_all_casks(wf, query):
@@ -121,7 +121,7 @@ def main(wf):
         elif query and any(query.startswith(x) for x in ['search', 'home']):
             for formula in filter_all_casks(wf, query):
                 wf.add_item(formula, 'Open homepage',
-                            arg='brew cask home %s' % formula,
+                            arg='brew home %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('uninstall'):
@@ -134,14 +134,14 @@ def main(wf):
         elif query and query.startswith('list'):
             for formula in filter_installed_casks(wf, query):
                 wf.add_item(formula, 'Open homepage',
-                            arg='brew cask home %s' % formula,
+                            arg='brew home %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('outdated'):
             for formula in filter_outdated_casks(wf, query):
                 name = formula.split(' ')[0]
                 wf.add_item(formula, 'Upgrade cask',
-                            arg='brew cask upgrade %s' % name,
+                            arg='brew upgrade homebrew/cask/%s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('config'):
