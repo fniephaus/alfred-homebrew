@@ -147,6 +147,8 @@
 			<real>10</real>
 		</dict>
 	</dict>
+	<key>version</key>
+	<string>5.0</string>
 	<key>webaddress</key>
 	<string>https://github.com/fniephaus/alfred-homebrew/</string>
 </dict>
