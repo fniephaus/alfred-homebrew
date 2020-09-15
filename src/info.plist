@@ -151,5 +151,14 @@
 	<string>5.1</string>
 	<key>webaddress</key>
 	<string>https://github.com/fniephaus/alfred-homebrew/</string>
+	<key>readme</key>
+	<string>Homebrew and Cask for Alfred
+============================
+
+Easily control Homebrew and Cask with Alfred.
+
+For more information, visit:
+https://github.com/fniephaus/alfred-homebrew/
+</string>
 </dict>
 </plist>
