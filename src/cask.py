@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 
-from workflow import Workflow, MATCH_SUBSTRING
+from workflow import Workflow3 as Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
 
 import cask_actions
@@ -127,8 +127,12 @@ def main(wf):
         elif query and query.startswith('uninstall'):
             for formula in filter_installed_casks(wf, query):
                 name = formula.split(' ')[0]
-                wf.add_item(formula, 'Uninstall cask',
+                item = wf.add_item(formula, 'Uninstall cask',
                             arg='brew uninstall --cask %s' % name,
+                            valid=True,
+                            icon=helpers.get_icon(wf, 'package'))
+                item.add_modifier('alt', 'Uninstall and zap cask',
+                            arg='brew uninstall --cask --zap %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('list'):
