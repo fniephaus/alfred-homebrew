@@ -115,7 +115,7 @@ def main(wf):
         if query and query.startswith('install'):
             for formula in filter_all_casks(wf, query):
                 wf.add_item(formula, 'Install cask',
-                            arg='brew cask install %s' % formula,
+                            arg='brew install --cask %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and any(query.startswith(x) for x in ['search', 'home']):
@@ -128,7 +128,7 @@ def main(wf):
             for formula in filter_installed_casks(wf, query):
                 name = formula.split(' ')[0]
                 wf.add_item(formula, 'Uninstall cask',
-                            arg='brew cask uninstall %s' % name,
+                            arg='brew uninstall --cask %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('list'):
@@ -141,7 +141,7 @@ def main(wf):
             for formula in filter_outdated_casks(wf, query):
                 name = formula.split(' ')[0]
                 wf.add_item(formula, 'Upgrade cask',
-                            arg='brew upgrade homebrew/cask/%s' % name,
+                            arg='brew upgrade --cask %s' % name,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('config'):

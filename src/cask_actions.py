@@ -38,7 +38,7 @@ ACTIONS = [
         'name': 'doctor',
         'description': 'Run brew doctor',
         'autocomplete': '',
-        'arg': 'brew cask doctor',
+        'arg': 'brew doctor',
         'valid': True
     },
     {
