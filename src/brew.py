@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 
-from workflow import Workflow, MATCH_SUBSTRING
+from workflow import Workflow3 as Workflow, MATCH_SUBSTRING
 from workflow.background import run_in_background
 
 import brew_actions
