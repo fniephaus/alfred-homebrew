@@ -10,14 +10,8 @@ from workflow.background import run_in_background
 import cask_actions
 import helpers
 
-
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 OPEN_HELP = 'open https://github.com/fniephaus/alfred-homebrew && exit'
-DEFAULT_SETTINGS = {
-    'HOMEBREW_CASK_OPTS': {
-        'appdir': '/Applications',
-    }
-}
 
 
 def execute(wf, cmd_list):
@@ -26,7 +20,9 @@ def execute(wf, cmd_list):
         if all(k in opts for k in ('appdir')):
             cmd_list += ['--appdir=%s' % opts['appdir']]
 
-    new_env = helpers.initialise_path()
+    brew_arch = helpers.get_brew_arch(wf)
+
+    new_env = helpers.initialise_path(brew_arch)
     result, err = subprocess.Popen(cmd_list,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
@@ -79,16 +75,6 @@ def filter_outdated_casks(wf, query):
     return formulas
 
 
-def edit_settings(wf):
-    # Create default settings if they not exist
-    if (not os.path.exists(wf.settings_path) or
-            not wf.settings.get('HOMEBREW_CASK_OPTS', None)):
-        for key in DEFAULT_SETTINGS:
-            wf.settings[key] = DEFAULT_SETTINGS[key]
-    # Edit settings
-    subprocess.call(['open', wf.settings_path])
-
-
 def main(wf):
     if wf.update_available:
         wf.add_item('An update is available!',
@@ -129,13 +115,13 @@ def main(wf):
             for formula in filter_installed_casks(wf, query):
                 name = formula.split(' ')[0]
                 item = wf.add_item(formula, 'Uninstall cask',
-                            arg='brew uninstall --cask %s' % name,
-                            valid=True,
-                            icon=helpers.get_icon(wf, 'package'))
+                                   arg='brew uninstall --cask %s' % name,
+                                   valid=True,
+                                   icon=helpers.get_icon(wf, 'package'))
                 item.add_modifier('alt', 'Uninstall and zap cask',
-                            arg='brew uninstall --cask --zap %s' % name,
-                            valid=True,
-                            icon=helpers.get_icon(wf, 'package'))
+                                  arg='brew uninstall --cask --zap %s' % name,
+                                  valid=True,
+                                  icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('list'):
             for formula in filter_installed_casks(wf, query):
                 wf.add_item(formula, 'Open homepage',
@@ -150,7 +136,7 @@ def main(wf):
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('config'):
-            edit_settings(wf)
+            helpers.edit_settings(wf)
             wf.add_item('`settings.json` has been opened.',
                         autocomplete='',
                         icon=helpers.get_icon(wf, 'info'))
