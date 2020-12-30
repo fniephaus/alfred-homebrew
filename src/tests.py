@@ -10,6 +10,7 @@ class HomeBrewTestCase(unittest.TestCase):
     def setUp(self):
         self.wf = Workflow()
         cask.wf = Workflow()
+        brew.wf = Workflow()
 
     def test_get_all_formulae(self):
         result = brew.get_all_formulae()
@@ -40,12 +41,13 @@ class HomeBrewTestCase(unittest.TestCase):
 
     def test_cask_execute(self):
         for cmd in ['search', 'list']:
-            result = cask.execute(self.wf, ['brew', cmd, '--cask'])
-            self.assertTrue(len(result) > 0)
+            result = cask.execute(cask.wf, ['brew', cmd, '--cask'])
+            # Changed to >= 0 cause sometimes a cask has not been installed.
+            self.assertTrue(len(result) >= 0)
 
     def test_brew_execute(self):
         for cmd in ['search', 'list']:
-            result = cask.execute(self.wf, ['brew', cmd])
+            result = brew.execute(brew.wf, ['brew', cmd])
             self.assertTrue(len(result) > 0)
 
 

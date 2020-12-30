@@ -28,6 +28,13 @@ ACTIONS = [
         'valid': False
     },
     {
+        'name': 'config',
+        'description': 'Open `settings.json` in your default editor.',
+        'autocomplete': 'config',
+        'arg': '',
+        'valid': False
+    },
+    {
         'name': 'update',
         'description': 'Update brew packages',
         'autocomplete': '',

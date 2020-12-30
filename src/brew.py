@@ -13,8 +13,9 @@ import helpers
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 
 
-def execute(cmd_list):
-    new_env = helpers.initialise_path()
+def execute(wf, cmd_list):
+    brew_arch = helpers.get_brew_arch(wf)
+    new_env = helpers.initialise_path(brew_arch)
     cmd, err = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
@@ -25,23 +26,23 @@ def execute(cmd_list):
 
 
 def get_all_formulae():
-    return execute(['brew', 'search', '--formula']).splitlines()
+    return execute(wf, ['brew', 'search', '--formula']).splitlines()
 
 
 def get_installed_formulae():
-    return execute(['brew', 'list', '--versions']).splitlines()
+    return execute(wf, ['brew', 'list', '--versions']).splitlines()
 
 
 def get_pinned_formulae():
-    return execute(['brew', 'list', '--pinned', '--versions']).splitlines()
+    return execute(wf, ['brew', 'list', '--pinned', '--versions']).splitlines()
 
 
 def get_outdated_formulae():
-    return execute(['brew', 'outdated', '--formula']).splitlines()
+    return execute(wf, ['brew', 'outdated', '--formula']).splitlines()
 
 
 def get_info():
-    return execute(['brew', 'info'])
+    return execute(wf, ['brew', 'info'])
 
 
 def get_commands(wf, query):
@@ -186,6 +187,11 @@ def main(wf):
                             arg='brew %s' % command,
                             valid=True,
                             icon=helpers.get_icon(wf, 'chevron-right'))
+        elif query and query.startswith('config'):
+            helpers.edit_settings(wf)
+            wf.add_item('`settings.json` has been opened.',
+                        autocomplete='',
+                        icon=helpers.get_icon(wf, 'info'))
         else:
             actions = brew_actions.ACTIONS
             if len(wf.cached_data('brew_pinned_formulae',

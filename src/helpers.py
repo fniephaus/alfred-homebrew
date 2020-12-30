@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 BREW_INSTALL_URL = 'https://raw.githubusercontent.com/Homebrew/install/' \
                    'master/install'
@@ -9,23 +10,61 @@ BREW_VERSIONS = {
         'FILE': '/usr/local/bin/brew'
     },
     'ARM': {
-        'PATH': '/opt/homebrew/bin',
+        'PATH': '/opt/homebrew/bin/',
         'FILE': '/opt/homebrew/bin/brew'
     }
 }
 
+DEFAULT_SETTINGS = {
+    'HOMEBREW_CASK_OPTS': {
+        'appdir': '/Applications',
+    },
+    'HOMEBREW_OPTS': {
+        'current_brew': 'INTEL'
+    }
+}
 
-def initialise_path():
+
+def get_brew_arch(wf):
+    find_brew = brew_installed()
+
+    # Get brew to use, and set intel as default
+    result = wf.settings.get('HOMEBREW_OPTS', None)
+
+    if result is not None:
+        brew_arch = result['current_brew']
+    else:
+        if find_brew['INTEL'] is False and find_brew['ARM'] is True:
+            brew_arch = 'ARM'
+        else:
+            brew_arch = 'INTEL'
+
+    return brew_arch
+
+
+def initialise_path(brew_arch):
     """
     Configure the environment for ARM brew if ARM brew is installed.
     Returns: Environment with the path to ARM brew included.
     """
     new_env = os.environ.copy()
     new_env['PATH'] = '/usr/local/bin/:%s' % new_env['PATH']
-    if os.path.isfile(BREW_VERSIONS['ARM']['FILE']):
+    # If ARM Brew is installed and the user has asked to use it, add to the path.
+    # homebrew only uses the first one it finds, and you can only use one at a time.
+    if os.path.isfile(BREW_VERSIONS['ARM']['FILE']) and brew_arch == 'ARM':
         new_env['PATH'] = '%s:%s' % (BREW_VERSIONS['ARM']['PATH'], new_env['PATH'])
 
     return new_env
+
+
+def edit_settings(wf):
+    # Create default settings if they not exist
+    if (not os.path.exists(wf.settings_path) or
+            not (wf.settings.get('HOMEBREW_CASK_OPTS', None) and (wf.settings.get('HOMEBREW_OPTS', None)))):
+        for key in DEFAULT_SETTINGS:
+            wf.settings[key] = DEFAULT_SETTINGS[key]
+    # Edit settings
+    subprocess.call(['open', wf.settings_path])
 
 
 def brew_installed():
