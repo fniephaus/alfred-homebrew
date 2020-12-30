@@ -26,8 +26,7 @@ def execute(wf, cmd_list):
         if all(k in opts for k in ('appdir')):
             cmd_list += ['--appdir=%s' % opts['appdir']]
 
-    new_env = os.environ.copy()
-    new_env['PATH'] = '/usr/local/bin:%s' % new_env['PATH']
+    new_env = helpers.initialise_path()
     result, err = subprocess.Popen(cmd_list,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,

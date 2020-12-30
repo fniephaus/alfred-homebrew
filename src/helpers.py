@@ -3,9 +3,38 @@ import os
 BREW_INSTALL_URL = 'https://raw.githubusercontent.com/Homebrew/install/' \
                    'master/install'
 
+BREW_VERSIONS = {
+    'INTEL': {
+        'PATH': '/usr/local/bin',
+        'FILE': '/usr/local/bin/brew'
+    },
+    'ARM': {
+        'PATH': '/opt/homebrew/bin',
+        'FILE': '/opt/homebrew/bin/brew'
+    }
+}
+
+
+def initialise_path():
+    """
+    Configure the environment for ARM brew if ARM brew is installed.
+    Returns: Environment with the path to ARM brew included.
+    """
+    new_env = os.environ.copy()
+    new_env['PATH'] = '/usr/local/bin/:%s' % new_env['PATH']
+    if os.path.isfile(BREW_VERSIONS['ARM']['FILE']):
+        new_env['PATH'] = '%s:%s' % (BREW_VERSIONS['ARM']['PATH'], new_env['PATH'])
+
+    return new_env
+
 
 def brew_installed():
-    return os.path.isfile('/usr/local/bin/brew')
+    result = {'INTEL': False, 'ARM': False}
+    if os.path.isfile(BREW_VERSIONS['INTEL']['FILE']):
+        result['INTEL'] = True
+    if os.path.isfile(BREW_VERSIONS['ARM']['FILE']):
+        result['ARM'] = True
+    return result
 
 
 def brew_installation_instructions(wf):

@@ -10,13 +10,11 @@ from workflow.background import run_in_background
 import brew_actions
 import helpers
 
-
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 
 
 def execute(cmd_list):
-    new_env = os.environ.copy()
-    new_env['PATH'] = '/usr/local/bin:%s' % new_env['PATH']
+    new_env = helpers.initialise_path()
     cmd, err = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
@@ -102,7 +100,10 @@ def main(wf):
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
-    if not helpers.brew_installed():
+    # Check for brew installation
+    find_brew = helpers.brew_installed()
+
+    if not (find_brew['INTEL'] or find_brew['ARM']):
         helpers.brew_installation_instructions(wf)
     else:
         # extract query
