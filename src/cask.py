@@ -96,7 +96,9 @@ def main(wf):
                     valid=False,
                     icon=helpers.get_icon(wf, 'cloud-download'))
 
-    if not helpers.brew_installed():
+    find_brew = helpers.brew_installed()
+
+    if not (find_brew['INTEL'] or find_brew['ARM']):
         helpers.brew_installation_instructions(wf)
     else:
         # extract query
