@@ -34,10 +34,7 @@ def get_brew_arch(wf):
     if result is not None:
         brew_arch = result['current_brew']
     else:
-        if find_brew['INTEL'] is False and find_brew['ARM'] is True:
-            brew_arch = 'ARM'
-        else:
-            brew_arch = 'INTEL'
+        brew_arch = 'ARM' if find_brew['ARM'] and not find_brew['INTEL'] else 'INTEL'
 
     return brew_arch
 
