@@ -26,7 +26,7 @@ def execute(wf, cmd_list):
 
 
 def get_all_formulae():
-    return execute(wf, ['brew', 'search', '--formula']).splitlines()
+    return execute(wf, ['brew', 'formulae']).splitlines()
 
 
 def get_installed_formulae():
@@ -46,7 +46,7 @@ def get_info():
 
 
 def get_commands(wf, query):
-    result = execute(['brew', 'commands']).splitlines()
+    result = execute(wf, ['brew', 'commands']).splitlines()
     commands = [x for x in result if ' ' not in x]
     query_filter = query.split()
     if len(query_filter) > 1:
