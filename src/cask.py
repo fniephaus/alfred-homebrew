@@ -34,7 +34,7 @@ def execute(wf, cmd_list):
 
 
 def get_all_casks():
-    return execute(wf, ['brew', 'search', '--cask']).splitlines()
+    return execute(wf, ['brew', 'casks']).splitlines()
 
 
 def get_installed_casks():
