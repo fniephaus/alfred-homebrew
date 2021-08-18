@@ -9,7 +9,7 @@ Easily control [Homebrew](https://brew.sh) and [Cask](https://brew.sh) with [Alf
 ## Features
 
 - Script filters ```brew``` and ```casks``` with support for the following commands:
-    - ```doctor```, ```info```, ```install```, ```list```, ```search```, ```uninstall```, ```update``` and ```upgrade```
+    - ```doctor```, ```info```, ```install```, ```list```, ```search```, ```services```, ```uninstall```, ```update``` and ```upgrade```
 - Background cache refresh
 
 
