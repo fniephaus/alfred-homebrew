@@ -54,6 +54,15 @@ def get_commands(wf, query):
     return commands
 
 
+def get_all_services():
+    services_response = execute(wf, ['brew', 'services', 'list']).splitlines()
+    services_response.pop(0)
+    services = []
+    for serviceLine in services_response:
+        services.append({'name': serviceLine.split()[0], 'status': serviceLine.split()[1]})
+    return services
+
+
 def filter_all_formulae(wf, query):
     formulae = wf.cached_data('brew_all_formulae',
                               get_all_formulae,
@@ -94,6 +103,43 @@ def filter_outdated_formulae(wf, query):
     return formulae
 
 
+def filter_all_services(wf, query):
+    services = wf.cached_data('brew_all_services',
+                              get_all_services,
+                              session=True)
+    query_filter = query.split()
+    if len(query_filter) > 1:
+        return wf.filter(query_filter[1], services, key=lambda x: x['name'], match_on=MATCH_SUBSTRING)
+    return services
+
+
+def add_service_actions(wf, service_name):
+    wf.add_item('Run Service',
+                'Run the service formula without registering to launch at login (or boot).',
+                autocomplete='services %s run' % service_name,
+                arg='brew services run %s' % service_name,
+                valid=True,
+                icon=helpers.get_icon(wf, 'chevron-right'))
+    wf.add_item('Stop Service',
+                'Stop the service formula immediately and unregister it from launching at login (or boot).',
+                autocomplete='services %s stop' % service_name,
+                arg='brew services stop %s' % service_name,
+                valid=True,
+                icon=helpers.get_icon(wf, 'chevron-right'))
+    wf.add_item('Start Service',
+                'Start the service formula immediately and register it to launch at login (or boot).',
+                autocomplete='services %s start' % service_name,
+                arg='brew services start %s' % service_name,
+                valid=True,
+                icon=helpers.get_icon(wf, 'chevron-right'))
+    wf.add_item('Restart Service',
+                'Stop (if necessary) and start the service formula immediately and register it to launch '
+                'at login (or boot).',
+                autocomplete='services %s restart' % service_name,
+                arg='brew services restart %s' % service_name,
+                valid=True,
+                icon=helpers.get_icon(wf, 'chevron-right'))
+
 def main(wf):
     if wf.update_available:
         wf.add_item('An update is available!',
@@ -125,6 +171,19 @@ def main(wf):
                             arg='brew install %s' % formula,
                             valid=True,
                             icon=helpers.get_icon(wf, 'package'))
+        elif query and query.startswith('services'):
+            query_filter = query.split()
+            if len(query_filter) == 2 and query.endswith(' '):
+                service_name = query_filter[1]
+                add_service_actions(wf, service_name)
+            else:
+                services = filter_all_services(wf, query)
+                for service in services:
+                    wf.add_item(service['name'], 'Select for action. Status: %s' % service['status'],
+                                autocomplete='services %s ' % service['name'],
+                                arg='',
+                                valid=False,
+                                icon=helpers.get_icon(wf, 'package'))
         elif query and query.startswith('search'):
             for formula in filter_all_formulae(wf, query):
                 wf.add_item(formula, 'Open formula on GitHub.',
