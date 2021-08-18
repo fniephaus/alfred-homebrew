@@ -49,6 +49,13 @@ ACTIONS = [
         'valid': True
     },
     {
+        'name': 'services',
+        'description': 'Control installed services',
+        'autocomplete': 'services ',
+        'arg': '',
+        'valid': False
+    },
+    {
         'name': 'doctor',
         'description': 'Run brew doctor',
         'autocomplete': '',
