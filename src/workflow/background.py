@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 #
-# Copyright (c) 2014 deanishe@deanishe.net
+# Copyright (c) 2022 Thomas Harr <xDevThomas@gmail.com>
+# Copyright (c) 2019 Dean Jackson <deanishe@deanishe.net>
 #
 # MIT Licence. See http://opensource.org/licenses/MIT
 #
@@ -17,13 +18,11 @@ See :ref:`the User Manual <background-processes>` for more information
 and examples.
 """
 
-from __future__ import print_function, unicode_literals
-
-import signal
-import sys
 import os
-import subprocess
 import pickle
+import signal
+import subprocess
+import sys
 
 from workflow import Workflow
 
@@ -47,9 +46,9 @@ def _arg_cache(name):
     """Return path to pickle cache file for arguments.
 
     :param name: name of task
-    :type name: ``unicode``
+    :type name: ``str``
     :returns: Path to cache file
-    :rtype: ``unicode`` filepath
+    :rtype: ``str`` filepath
 
     """
     return wf().cachefile(name + '.argcache')
@@ -59,9 +58,9 @@ def _pid_file(name):
     """Return path to PID file for ``name``.
 
     :param name: name of task
-    :type name: ``unicode``
+    :type name: ``str``
     :returns: Path to PID file for task
-    :rtype: ``unicode`` filepath
+    :rtype: ``str`` filepath
 
     """
     return wf().cachefile(name + '.pid')
@@ -96,7 +95,7 @@ def _job_pid(name):
     if not os.path.exists(pidfile):
         return
 
-    with open(pidfile, 'rb') as fp:
+    with open(pidfile, 'r') as fp:
         pid = int(fp.read())
 
         if _process_exists(pid):
@@ -109,7 +108,7 @@ def is_running(name):
     """Test whether task ``name`` is currently running.
 
     :param name: name of task
-    :type name: unicode
+    :type name: str
     :returns: ``True`` if task with name ``name`` is running, else ``False``
     :rtype: bool
 
@@ -140,7 +139,7 @@ def _background(pidfile, stdin='/dev/null', stdout='/dev/null',
             if pid > 0:
                 if write:  # write PID of child process to `pidfile`
                     tmp = pidfile + '.tmp'
-                    with open(tmp, 'wb') as fp:
+                    with open(tmp, 'w') as fp:
                         fp.write(str(pid))
                     os.rename(tmp, pidfile)
                 if wait:  # wait for child process to exit
@@ -162,9 +161,9 @@ def _background(pidfile, stdin='/dev/null', stdout='/dev/null',
 
     # Now I am a daemon!
     # Redirect standard file descriptors.
-    si = open(stdin, 'r', 0)
-    so = open(stdout, 'a+', 0)
-    se = open(stderr, 'a+', 0)
+    si = open(stdin, 'rb', 0)
+    so = open(stdout, 'ab+', 0)
+    se = open(stderr, 'ab+', 0)
     if hasattr(sys.stdin, 'fileno'):
         os.dup2(si.fileno(), sys.stdin.fileno())
     if hasattr(sys.stdout, 'fileno'):
@@ -197,7 +196,7 @@ def run_in_background(name, args, **kwargs):
     r"""Cache arguments then call this script again via :func:`subprocess.call`.
 
     :param name: name of job
-    :type name: unicode
+    :type name: str
     :param args: arguments passed as first argument to :func:`subprocess.call`
     :param \**kwargs: keyword arguments to :func:`subprocess.call`
     :returns: exit code of sub-process
@@ -229,13 +228,13 @@ def run_in_background(name, args, **kwargs):
         pickle.dump({'args': args, 'kwargs': kwargs}, fp)
         _log().debug('[%s] command cached: %s', name, argcache)
 
-    # Call this script
-    cmd = ['/usr/bin/python', __file__, name]
+    # Call this script in module mode because of relativ import
+    cmd = ['/usr/bin/env', 'python3', '-m', 'workflow.background', name]
     _log().debug('[%s] passing job to background runner: %r', name, cmd)
     retcode = subprocess.call(cmd)
 
     if retcode:  # pragma: no cover
-        _log().error('[%s] background runner failed with %d', name, retcode)
+        _log().error('[%s] background runner (%r) failed with %d', name, cmd, retcode)
     else:
         _log().debug('[%s] background job started', name)
 

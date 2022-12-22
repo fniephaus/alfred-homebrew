@@ -59,7 +59,7 @@
 				<key>queuemode</key>
 				<integer>1</integer>
 				<key>script</key>
-				<string>python brew.py "{query}"</string>
+				<string>/usr/bin/env python3 brew.py "{query}"</string>
 				<key>subtext</key>
 				<string>Control Homebrew</string>
 				<key>title</key>
@@ -109,7 +109,7 @@
 				<key>queuemode</key>
 				<integer>1</integer>
 				<key>script</key>
-				<string>python cask.py "{query}"</string>
+				<string>/usr/bin/env python3 cask.py "{query}"</string>
 				<key>subtext</key>
 				<string>Control Homebrew Cask</string>
 				<key>title</key>

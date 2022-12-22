@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 #
+# Copyright (c) 2022 Thomas Harr <xDevThomas@gmail.com>
 # Copyright (c) 2014 Fabio Niephaus <fabio.niephaus@gmail.com>,
 #       Dean Jackson <deanishe@deanishe.net>
 #
@@ -21,18 +22,15 @@
 
 """
 
-from __future__ import print_function, unicode_literals
-
-from collections import defaultdict
-from functools import total_ordering
 import json
 import os
-import tempfile
 import re
 import subprocess
+import tempfile
+from collections import defaultdict
+from functools import total_ordering
 
-import workflow
-import web
+from . import web, workflow
 
 # __all__ = []
 
@@ -143,7 +141,7 @@ class Download(object):
                 pre-release. Defaults to False.
 
         """
-        if isinstance(version, basestring):
+        if isinstance(version, str):
             version = Version(version)
 
         self.url = url
@@ -167,12 +165,10 @@ class Download(object):
 
     def __str__(self):
         """Format `Download` for printing."""
-        u = ('Download(url={dl.url!r}, '
-             'filename={dl.filename!r}, '
-             'version={dl.version!r}, '
-             'prerelease={dl.prerelease!r})'.format(dl=self))
-
-        return u.encode('utf-8')
+        return ('Download(url={dl.url!r}, '
+                'filename={dl.filename!r}, '
+                'version={dl.version!r}, '
+                'prerelease={dl.prerelease!r})'.format(dl=self))
 
     def __repr__(self):
         """Code-like representation of `Download`."""
@@ -228,7 +224,7 @@ class Version(object):
         """Create new `Version` object.
 
         Args:
-            vstr (basestring): Semantic version string.
+            vstr (``str``): Semantic version string.
         """
         if not vstr:
             raise ValueError('invalid version number: {!r}'.format(vstr))
@@ -287,7 +283,12 @@ class Version(object):
         return (self.major, self.minor, self.patch, self.suffix)
 
     def __lt__(self, other):
-        """Implement comparison."""
+        """Implement comparison.
+
+        .. versionadded:: 1.x
+        .. versionchanged:: 2.0
+
+        """
         if not isinstance(other, Version):
             raise ValueError('not a Version instance: {0!r}'.format(other))
         t = self.tuple[:3]
@@ -299,8 +300,20 @@ class Version(object):
                 return True
             if other.suffix and not self.suffix:
                 return False
-            return self._parse_dotted_string(self.suffix) \
-                < self._parse_dotted_string(other.suffix)
+            lft = self._parse_dotted_string(self.suffix)
+            rgt = self._parse_dotted_string(other.suffix)
+            try:
+                return lft < rgt
+            except TypeError:
+                # Python 3 will not allow lt/gt comparisons of int & str.
+                while lft and rgt and lft[0] == rgt[0]:
+                    lft.pop(0)
+                    rgt.pop(0)
+
+                # Alphanumeric versions are earlier than numeric versions,
+                # therefore lft < rgt if the right version is numeric.
+                return isinstance(rgt[0], int)
+
         # t > o
         return False
 
@@ -350,10 +363,10 @@ def retrieve_download(dl):
     .. versionadded: 1.37
 
     Args:
-        url (unicode): URL to .alfredworkflow file in GitHub repo
+        url (str): URL to .alfredworkflow file in GitHub repo
 
     Returns:
-        unicode: path to downloaded file
+        str: path to downloaded file
 
     """
     if not match_workflow(dl.filename):
@@ -375,10 +388,10 @@ def build_api_url(repo):
     """Generate releases URL from GitHub repo.
 
     Args:
-        repo (unicode): Repo name in form ``username/repo``
+        repo (str): Repo name in form ``username/repo``
 
     Returns:
-        unicode: URL to the API endpoint for the repo's releases
+        str: URL to the API endpoint for the repo's releases
 
     """
     if len(repo.split('/')) != 2:
@@ -393,7 +406,7 @@ def get_downloads(repo):
     .. versionadded: 1.37
 
     Args:
-        repo (unicode): GitHub repo to load releases for.
+        repo (str): GitHub repo to load releases for.
 
     Returns:
         list: Sequence of `Download` contained in GitHub releases.
@@ -440,11 +453,11 @@ def check_update(repo, current_version, prereleases=False,
     """Check whether a newer release is available on GitHub.
 
     Args:
-        repo (unicode): ``username/repo`` for workflow's GitHub repo
-        current_version (unicode): the currently installed version of the
+        repo (str): ``username/repo`` for workflow's GitHub repo
+        current_version (str): the currently installed version of the
             workflow. :ref:`Semantic versioning <semver>` is required.
         prereleases (bool): Whether to include pre-releases.
-        alfred_version (unicode): version of currently-running Alfred.
+        alfred_version (str): version of currently-running Alfred.
             if empty, defaults to ``$alfred_version`` environment variable.
 
     Returns:

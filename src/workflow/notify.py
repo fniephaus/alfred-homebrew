@@ -1,14 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 #
-# Copyright (c) 2015 deanishe@deanishe.net
+# Copyright (c) 2022 Thomas Harr <xDevThomas@gmail.com>
+# Copyright (c) 2019 Dean Jackson <deanishe@deanishe.net>
 #
 # MIT Licence. See http://opensource.org/licenses/MIT
 #
 # Created on 2015-11-26
 #
-
-# TODO: Exclude this module from test and code coverage in py2.6
 
 """
 Post notifications via the macOS Notification Center.
@@ -18,30 +17,33 @@ It will silently fail on older systems.
 
 The main API is a single function, :func:`~workflow.notify.notify`.
 
-It works by copying a simple application to your workflow's data
+It works by creating a simple application to your workflow's cache
 directory. It replaces the application's icon with your workflow's
-icon and then calls the application to post notifications.
-"""
+icon and then calls the application to post notifications. The app
+is rebuilt if it is over a month old at the time of the notification,
+to refresh outdated icons.
 
-from __future__ import print_function, unicode_literals
+This module uses ``Notificator`` logic created by Vítor Galvão
+ https://github.com/vitorgalvao/notificator
+"""
 
 import os
 import plistlib
 import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
-import uuid
+import time
+from datetime import timedelta
 
 import workflow
-
 
 _wf = None
 _log = None
 
 
 #: Available system sounds from System Preferences > Sound > Sound Effects
+# (location: ``/System/Library/Sounds``)
 SOUNDS = (
     'Basso',
     'Blow',
@@ -83,78 +85,130 @@ def log():
         _log = wf().logger
     return _log
 
+def notificator_name():
+    """Notificator name from Alfred's workflow name.
+    ``Notificator for `~workflow.name`.app``
 
-def notifier_program():
-    """Return path to notifier applet executable.
+        :returns: notificator name
+        :rtype: ``str``
+
+        """
+    return f'Notificator for {wf().name}.app'
+
+
+def notificator_program():
+    """Return path to Notificator applet executable.
 
     Returns:
-        unicode: Path to Notify.app ``applet`` executable.
+        str: Path to ``Notificator for `~workflow.name`.app`` ``applet`` executable.
     """
-    return wf().datafile('Notify.app/Contents/MacOS/applet')
+    return wf().cachefile(f'{notificator_name()}/Contents/MacOS/applet')
 
 
-def notifier_icon_path():
-    """Return path to icon file in installed Notify.app.
+def notificator_icon_path():
+    """Return path to icon file in installed ``Notificator for `~workflow.name`.app``.
 
     Returns:
-        unicode: Path to ``applet.icns`` within the app bundle.
+        str: Path to ``applet.icns`` within the app bundle.
     """
-    return wf().datafile('Notify.app/Contents/Resources/applet.icns')
+    return wf().cachefile(f'{notificator_name()}/Contents/Resources/applet.icns')
 
 
-def install_notifier():
-    """Extract ``Notify.app`` from the workflow to data directory.
+def install_notificator():
+    """Build the ``Notificator for `~workflow.name`.app`` from the workflow to cache directory.
 
     Changes the bundle ID of the installed app and gives it the
     workflow's icon.
     """
-    archive = os.path.join(os.path.dirname(__file__), 'Notify.tgz')
-    destdir = wf().datadir
-    app_path = os.path.join(destdir, 'Notify.app')
-    n = notifier_program()
-    log().debug('installing Notify.app to %r ...', destdir)
-    # z = zipfile.ZipFile(archive, 'r')
-    # z.extractall(destdir)
-    tgz = tarfile.open(archive, 'r:gz')
-    tgz.extractall(destdir)
-    if not os.path.exists(n):  # pragma: nocover
-        raise RuntimeError('Notify.app could not be installed in ' + destdir)
+    jxa_script='''
+    // Build argv/argc in a way that can be used from the applet inside the app bundle
+    ObjC.import("Foundation")
+    const args = $.NSProcessInfo.processInfo.arguments
+    const argv = []
+    const argc = args.count
+    for (let i = 0; i < argc; i++) { argv.push(ObjC.unwrap(args.objectAtIndex(i))) }
+    // Notification script
+    const app = Application.currentApplication()
+    app.includeStandardAdditions = true
+    if (argv.length < 2) { // We use "2" because the script will always see at least one argument: the applet itself
+        argv[1] = "Opening usage instructions…"
+        argv[2] = "Notificator is a command-line app"
+        argv[4] = "Funk"
+        app.openLocation("https://github.com/vitorgalvao/notificator#usage")
+    }
+    const message = argv[1]
+    const title = argv[2]
+    const subtitle = argv[3]
+    const sound = argv[4]
+    const options = {}
+    if (title) options.withTitle = title
+    if (subtitle) options.subtitle = subtitle
+    if (sound) options.soundName = sound
+    app.displayNotification(message, options)
+    '''
+    destdir = wf().cachedir
+    app_name = notificator_name()
+    app_path = os.path.join(destdir, app_name)
+
+    log().debug(f'installing "{app_name}" to {destdir} ...')
+
+    cmd = [
+        'osacompile',
+        '-l', 'JavaScript',
+        '-o', app_path,
+        '-e', jxa_script
+        ]
+    retcode = subprocess.call(cmd)
+    if retcode != 0: # pragma: nocover
+        raise RuntimeError(f'oscompile exited with {retcode}')
+
+    n = notificator_program()
+    if not os.path.exists(n): # pragma: nocover
+        raise RuntimeError(f'{app_name} could not be installed in ' + destdir)
 
     # Replace applet icon
-    icon = notifier_icon_path()
+    icon = notificator_icon_path()
     workflow_icon = wf().workflowfile('icon.png')
     if os.path.exists(icon):
         os.unlink(icon)
 
     png_to_icns(workflow_icon, icon)
 
-    # Set file icon
-    # PyObjC isn't available for 2.6, so this is 2.7 only. Actually,
-    # none of this code will "work" on pre-10.8 systems. Let it run
-    # until I figure out a better way of excluding this module
-    # from coverage in py2.6.
-    if sys.version_info >= (2, 7):  # pragma: no cover
-        from AppKit import NSWorkspace, NSImage
-
-        ws = NSWorkspace.sharedWorkspace()
-        img = NSImage.alloc().init()
-        img.initWithContentsOfFile_(icon)
-        ws.setIcon_forFile_options_(img, app_path, 0)
-
-    # Change bundle ID of installed app
+    # Modify Notificator, change bundle ID of installed app
     ip_path = os.path.join(app_path, 'Contents/Info.plist')
-    bundle_id = '{0}.{1}'.format(wf().bundleid, uuid.uuid4().hex)
-    data = plistlib.readPlist(ip_path)
+    #bundle_id = f'{wf().bundleid}.{uuid.uuid4().hex}'
+    bundle_id = f'{wf().bundleid}'
+    with open(ip_path, 'rb') as fp:
+        data = plistlib.load(fp)
     log().debug('changing bundle ID to %r', bundle_id)
     data['CFBundleIdentifier'] = bundle_id
-    plistlib.writePlist(data, ip_path)
+    data['LSUIElement'] = '1'
+    with open(ip_path, 'wb') as fp:
+        plistlib.dump(data, fp)
+
+    # Redo signature
+    cmd = [
+        'codesign',
+        '--remove-signature', app_path
+    ]
+    retcode = subprocess.call(cmd)
+    if retcode != 0: # pragma: nocover
+        raise RuntimeError(f'codesign remove-signature exited with {retcode}')
+
+    cmd = [
+        'codesign',
+        '--sign', '-', app_path
+    ]
+    retcode = subprocess.call(cmd)
+    if retcode != 0: # pragma: nocover
+        raise RuntimeError(f'codesign sign exited with {retcode}')
 
 
 def validate_sound(sound):
     """Coerce ``sound`` to valid sound name.
 
     Returns ``None`` for invalid sounds. Sound names can be found
-    in ``System Preferences > Sound > Sound Effects``.
+    in ``System Preferences > Sound > Sound Effects`` or located at ``/System/Library/Sounds``.
 
     Args:
         sound (str): Name of system sound.
@@ -172,12 +226,13 @@ def validate_sound(sound):
     return None
 
 
-def notify(title='', text='', sound=None):
-    """Post notification via Notify.app helper.
+def notify(title='', subtitle='', message='', sound=None):
+    """Post notification via notificator helper app  from Vítor Galvão.
 
     Args:
         title (str, optional): Notification title.
-        text (str, optional): Notification body text.
+        subtitle (str, optional): Notification title.
+        message (str): Notification body text.
         sound (str, optional): Name of sound to play.
 
     Raises:
@@ -186,23 +241,25 @@ def notify(title='', text='', sound=None):
     Returns:
         bool: ``True`` if notification was posted, else ``False``.
     """
-    if title == text == '':
-        raise ValueError('Empty notification')
+    if message == '':
+        raise ValueError('Empty notification message')
 
     sound = validate_sound(sound) or ''
 
-    n = notifier_program()
+    n = notificator_program()
 
-    if not os.path.exists(n):
-        install_notifier()
+    # Install if Notificator does not exist or was modified more than 30 days ago
+    if (not os.path.exists(n)) or timedelta(seconds=time.time() - os.path.getmtime(n)).days >= 30:
+        install_notificator()
 
-    env = os.environ.copy()
-    enc = 'utf-8'
-    env['NOTIFY_TITLE'] = title.encode(enc)
-    env['NOTIFY_MESSAGE'] = text.encode(enc)
-    env['NOTIFY_SOUND'] = sound.encode(enc)
-    cmd = [n]
-    retcode = subprocess.call(cmd, env=env)
+    cmd = [
+        n,
+        message,
+        title,
+        subtitle,
+        sound
+        ]
+    retcode = subprocess.call(cmd)
     if retcode == 0:
         return True
 
@@ -222,10 +279,10 @@ def convert_image(inpath, outpath, size):
         RuntimeError: Raised if ``sips`` exits with non-zero status.
     """
     cmd = [
-        b'sips',
-        b'-z', str(size), str(size),
+        'sips',
+        '--resampleHeightWidth', str(size), str(size),
         inpath,
-        b'--out', outpath]
+        '--out', outpath]
     # log().debug(cmd)
     with open(os.devnull, 'w') as pipe:
         retcode = subprocess.call(cmd, stdout=pipe, stderr=subprocess.STDOUT)
@@ -248,10 +305,10 @@ def png_to_icns(png_path, icns_path):
     Raises:
         RuntimeError: Raised if ``iconutil`` or ``sips`` fail.
     """
-    tempdir = tempfile.mkdtemp(prefix='aw-', dir=wf().datadir)
+    tempdir = tempfile.mkdtemp(prefix='aw-', dir=wf().cachedir)
 
     try:
-        iconset = os.path.join(tempdir, 'Icon.iconset')
+        iconset = os.path.join(tempdir, 'icon.iconset')
 
         if os.path.exists(iconset):  # pragma: nocover
             raise RuntimeError('iconset already exists: ' + iconset)
@@ -261,32 +318,28 @@ def png_to_icns(png_path, icns_path):
         # Copy source icon to icon set and generate all the other
         # sizes needed
         configs = []
-        for i in (16, 32, 128, 256, 512):
-            configs.append(('icon_{0}x{0}.png'.format(i), i))
-            configs.append((('icon_{0}x{0}@2x.png'.format(i), i * 2)))
-
-        shutil.copy(png_path, os.path.join(iconset, 'icon_256x256.png'))
-        shutil.copy(png_path, os.path.join(iconset, 'icon_128x128@2x.png'))
+        for i in (16, 32, 64, 128, 256, 512):
+            configs.append((f'icon_{i}x{i}.png', i))
+            configs.append(((f'icon_{i}x{i}@2x.png', i * 2)))
 
         for name, size in configs:
             outpath = os.path.join(iconset, name)
-            if os.path.exists(outpath):
+            if os.path.exists(outpath): # pragma: nocover
                 continue
             convert_image(png_path, outpath, size)
 
         cmd = [
-            b'iconutil',
-            b'-c', b'icns',
-            b'-o', icns_path,
+            'iconutil',
+            '--convert', 'icns',
+            '--output', icns_path,
             iconset]
 
         retcode = subprocess.call(cmd)
         if retcode != 0:
-            raise RuntimeError('iconset exited with %d' % retcode)
+            raise RuntimeError(f'iconset exited with {retcode}')
 
         if not os.path.exists(icns_path):  # pragma: nocover
-            raise ValueError(
-                'generated ICNS file not found: ' + repr(icns_path))
+            raise ValueError(f'generated ICNS file not found: {icns_path}')
     finally:
         try:
             shutil.rmtree(tempdir)
@@ -299,7 +352,6 @@ if __name__ == '__main__':  # pragma: nocover
     # This won't work on 2.6, as `argparse` isn't available
     # by default.
     import argparse
-
     from unicodedata import normalize
 
     def ustr(s):

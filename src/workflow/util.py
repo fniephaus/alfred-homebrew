@@ -1,7 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 #
-# Copyright (c) 2017 Dean Jackson <deanishe@deanishe.net>
+# Copyright (c) 2022 Thomas Harr <xDevThomas@gmail.com>
+# Copyright (c) 2019 Dean Jackson <deanishe@deanishe.net>
 #
 # MIT Licence. See http://opensource.org/licenses/MIT
 #
@@ -10,11 +11,7 @@
 
 """A selection of helper functions useful for building workflows."""
 
-from __future__ import print_function, absolute_import
-
 import atexit
-from collections import namedtuple
-from contextlib import contextmanager
 import errno
 import fcntl
 import functools
@@ -23,8 +20,10 @@ import os
 import signal
 import subprocess
 import sys
-from threading import Event
 import time
+from collections import namedtuple
+from contextlib import contextmanager
+from threading import Event
 
 # JXA scripts to call Alfred's API via the Scripting Bridge
 # {app} is automatically replaced with "Alfred 3" or
@@ -55,19 +54,19 @@ class AcquisitionError(Exception):
 AppInfo = namedtuple('AppInfo', ['name', 'path', 'bundleid'])
 """Information about an installed application.
 
-Returned by :func:`appinfo`. All attributes are Unicode.
+Returned by :func:`appinfo`. All attributes are str.
 
 .. py:attribute:: name
 
-    Name of the application, e.g. ``u'Safari'``.
+    Name of the application, e.g. ``'Safari'``.
 
 .. py:attribute:: path
 
-    Path to the application bundle, e.g. ``u'/Applications/Safari.app'``.
+    Path to the application bundle, e.g. ``'/Applications/Safari.app'``.
 
 .. py:attribute:: bundleid
 
-    Application's bundle ID, e.g. ``u'com.apple.Safari'``.
+    Application's bundle ID, e.g. ``'com.apple.Safari'``.
 
 """
 
@@ -76,21 +75,18 @@ def jxa_app_name():
     """Return name of application to call currently running Alfred.
 
     .. versionadded: 1.37
+    .. versionchanged:: 2.0
 
-    Returns 'Alfred 3' or 'com.runningwithcrayons.Alfred' depending
-    on which version of Alfred is running.
+    Returns 'com.runningwithcrayons.Alfred' the bundleID of Alfred 4+ versions
 
     This name is suitable for use with ``Application(name)`` in JXA.
 
     Returns:
-        unicode: Application name or ID.
+        str: bundleID.
 
     """
-    if os.getenv('alfred_version', '').startswith('3'):
-        # Alfred 3
-        return u'Alfred 3'
     # Alfred 4+
-    return u'com.runningwithcrayons.Alfred'
+    return 'com.runningwithcrayons.Alfred'
 
 
 def unicodify(s, encoding='utf-8', norm=None):
@@ -107,41 +103,17 @@ def unicodify(s, encoding='utf-8', norm=None):
         norm (None, optional): Normalisation form to apply to Unicode string.
 
     Returns:
-        unicode: Decoded, optionally normalised, Unicode string.
+        str: Decoded, optionally normalised, Unicode string.
 
     """
-    if not isinstance(s, unicode):
-        s = unicode(s, encoding)
+    if not isinstance(s, str):
+        s = str(s, encoding)
 
     if norm:
         from unicodedata import normalize
         s = normalize(norm, s)
 
     return s
-
-
-def utf8ify(s):
-    """Ensure string is a bytestring.
-
-    .. versionadded:: 1.31
-
-    Returns `str` objects unchanced, encodes `unicode` objects to
-    UTF-8, and calls :func:`str` on anything else.
-
-    Args:
-        s (object): A Python object
-
-    Returns:
-        str: UTF-8 string or string representation of s.
-
-    """
-    if isinstance(s, str):
-        return s
-
-    if isinstance(s, unicode):
-        return s.encode('utf-8')
-
-    return str(s)
 
 
 def applescriptify(s):
@@ -156,13 +128,13 @@ def applescriptify(s):
         'g " & quote & "python" & quote & "test'
 
     Args:
-        s (unicode): Unicode string to escape.
+        s (str): Unicode string to escape.
 
     Returns:
-        unicode: Escaped string.
+        str: Escaped string.
 
     """
-    return s.replace(u'"', u'" & quote & "')
+    return s.replace('"', '" & quote & "')
 
 
 def run_command(cmd, **kwargs):
@@ -181,7 +153,7 @@ def run_command(cmd, **kwargs):
         str: Output returned by :func:`~subprocess.check_output`.
 
     """
-    cmd = [utf8ify(s) for s in cmd]
+    cmd = [str(s) for s in cmd]
     return subprocess.check_output(cmd, **kwargs)
 
 
@@ -272,7 +244,7 @@ def set_theme(theme_name):
     .. versionadded:: 1.39.0
 
     Args:
-        theme_name (unicode): Name of theme Alfred should use.
+        theme_name (str): Name of theme Alfred should use.
 
     """
     appname = jxa_app_name()
@@ -344,10 +316,10 @@ def search_in_alfred(query=None):
     Omit ``query`` to simply open Alfred's main window.
 
     Args:
-        query (unicode, optional): Search query.
+        query (str, optional): Search query.
 
     """
-    query = query or u''
+    query = query or ''
     appname = jxa_app_name()
     script = JXA_SEARCH.format(app=json.dumps(appname), arg=json.dumps(query))
     run_applescript(script, lang='JavaScript')
@@ -359,7 +331,7 @@ def browse_in_alfred(path):
     .. versionadded:: 1.39.0
 
     Args:
-        path (unicode): File or directory path.
+        path (str): File or directory path.
 
     """
     appname = jxa_app_name()
@@ -390,7 +362,7 @@ def reload_workflow(bundleid=None):
     workflow is used.
 
     Args:
-        bundleid (unicode, optional): Bundle ID of workflow to reload.
+        bundleid (str, optional): Bundle ID of workflow to reload.
 
     """
     bundleid = bundleid or os.getenv('alfred_workflow_bundleid')
@@ -427,7 +399,7 @@ def appinfo(name):
     if not output:
         return None
 
-    path = output.split('\n')[0]
+    path = str(output, 'utf-8').split('\n')[0]
 
     cmd = ['mdls', '-raw', '-name', 'kMDItemCFBundleIdentifier', path]
     bid = run_command(cmd).strip()
@@ -447,7 +419,7 @@ def atomic_writer(fpath, mode):
     succeeds. The data is first written to a temporary file.
 
     :param fpath: path of file to write to.
-    :type fpath: ``unicode``
+    :type fpath: ``str``
     :param mode: sames as for :func:`open`
     :type mode: string
 
@@ -479,7 +451,7 @@ class LockFile(object):
     >>>         fp.write(data)
 
     Args:
-        protected_path (unicode): File to protect with a lockfile
+        protected_path (str): File to protect with a lockfile
         timeout (float, optional): Raises an :class:`AcquisitionError`
             if lock cannot be acquired within this number of seconds.
             If ``timeout`` is 0 (the default), wait forever.
@@ -489,7 +461,7 @@ class LockFile(object):
     Attributes:
         delay (float): How often to check (in seconds) whether the lock
             can be acquired.
-        lockfile (unicode): Path of the lockfile.
+        lockfile (str): Path of the lockfile.
         timeout (float): How long to wait to acquire the lock.
 
     """
@@ -603,7 +575,7 @@ class uninterruptible(object):
     the SIGTERM will be caught and handled after your function has
     finished executing.
 
-    Alfred-Workflow uses this internally to ensure its settings, data
+    Alfred-PyWorkflow uses this internally to ensure its settings, data
     and cache writes complete.
 
     """
