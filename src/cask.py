@@ -1,14 +1,14 @@
+#!/usr/bin/env python3
 # encoding: utf-8
 
 import os
-import sys
 import subprocess
-
-from workflow import Workflow3 as Workflow, MATCH_SUBSTRING
-from workflow.background import run_in_background
+import sys
 
 import cask_actions
 import helpers
+from workflow import MATCH_SUBSTRING, Workflow
+from workflow.background import run_in_background
 
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 OPEN_HELP = 'open https://github.com/fniephaus/alfred-homebrew && exit'
@@ -28,9 +28,8 @@ def execute(wf, cmd_list):
                                    stderr=subprocess.PIPE,
                                    env=new_env).communicate()
     if err:
-        return 'Error: %s' % err
-
-    return result
+        return 'Error: %s' % str(err, 'utf-8')
+    return str(result, 'utf-8')
 
 
 def get_all_casks():
@@ -170,7 +169,7 @@ def main(wf):
     wf.send_feedback()
 
     # refresh cache
-    cmd = ['/usr/bin/python', wf.workflowfile('cask_refresh.py')]
+    cmd = ['/usr/bin/env', 'python3', wf.workflowfile('cask_refresh.py')]
     run_in_background('cask_refresh', cmd)
 
 

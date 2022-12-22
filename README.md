@@ -33,4 +33,4 @@ You need to update workflow's settings accordingly to your configuration.
 
 ## Credits
 
-This workflow uses [Github Octicons](https://github.com/github/octicons/) and [alfred-workflow](https://github.com/deanishe/alfred-workflow).
+This workflow uses [Github Octicons](https://github.com/github/octicons/) and [alfred-workflow](https://github.com/harrtho/alfred-pyworkflow).

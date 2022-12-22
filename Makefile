@@ -8,5 +8,5 @@ clean:
 	rm -f *.alfredworkflow
 
 update-lib:
-	/usr/bin/python -m pip install --target src --upgrade Alfred-Workflow
-	rm -rf src/Alfred_Workflow-*-info/
+	/usr/bin/env python3 -m pip install --target src --upgrade Alfred-PyWorkflow
+	rm -rf src/Alfred_PyWorkflow-*-info/

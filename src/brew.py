@@ -1,14 +1,14 @@
+#!/usr/bin/env python3
 # encoding: utf-8
 
 import os
 import subprocess
 import sys
 
-from workflow import Workflow3 as Workflow, MATCH_SUBSTRING
-from workflow.background import run_in_background
-
 import brew_actions
 import helpers
+from workflow import MATCH_SUBSTRING, Workflow
+from workflow.background import run_in_background
 
 GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 
@@ -16,13 +16,13 @@ GITHUB_SLUG = 'fniephaus/alfred-homebrew'
 def execute(wf, cmd_list):
     brew_arch = helpers.get_brew_arch(wf)
     new_env = helpers.initialise_path(brew_arch)
-    cmd, err = subprocess.Popen(cmd_list,
+    result, err = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 env=new_env).communicate()
     if err:
-        return err
-    return cmd
+        return 'Error: %s' % str(err, 'utf-8')
+    return str(result, 'utf-8')
 
 
 def get_all_formulae():
@@ -291,7 +291,7 @@ def main(wf):
     wf.send_feedback()
 
     # refresh cache
-    cmd = ['/usr/bin/python', wf.workflowfile('brew_refresh.py')]
+    cmd = ['/usr/bin/env', 'python3', wf.workflowfile('brew_refresh.py')]
     run_in_background('brew_refresh', cmd)
 
 
